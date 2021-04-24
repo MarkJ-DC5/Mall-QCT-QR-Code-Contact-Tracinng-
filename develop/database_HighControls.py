@@ -1,4 +1,6 @@
 from database import Database
+from datetime import datetime
+import random
 
 
 class HighControlDB(Database):
@@ -80,3 +82,10 @@ class HighControlDB(Database):
 # db = HighControlDB("localhost", "root", "root", "Development")
 # db.createHlthDecRec()
 # database.resetDatabase()
+
+
+# i = 0
+# while i < 20:
+#     db.insert("customers_health_record ", ["u_id", "s_id", "dt_rec"], [
+#               random.randint(1, 10), random.randint(1, 5), dt])
+#     i += 1

@@ -2,5 +2,4 @@
     "python.pythonPath": "c:\\Programming\\Python\\Machine Problem\\env_mp\\Scripts\\python.exe",
     "python.linting.enabled": true,
     "python.autoComplete.extraPaths": ["C:\\Programming\\Python\\Machine Problem\\Mall-QCT (QR Code Contact Tracinng)\\develop\\database.py"],
-    "python.autoComplete.extraPaths": ["C:\\Programming\\Python\\Machine Problem\\Mall-QCT (QR Code Contact Tracinng)\\develop\\user.py"],
 }

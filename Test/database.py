@@ -24,6 +24,7 @@ class Database:
                 database=p_databaseName
             )
             self.dbCursor = self.db.cursor()
+            # self.dbCursor.execute("CREATE DATABASE testDB")
             print("Connection to Databse Established")
 
         except:
@@ -47,7 +48,6 @@ class Database:
             table, colsString, tuple(values))
         self.query(insert)
         self.commit()
-
 
     def __del__(self):
         print("Object Cleared")
