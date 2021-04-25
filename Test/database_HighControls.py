@@ -38,9 +38,37 @@ class HighControlDB(Database):
         self.createCustHlthRec()
 
 
-db = HighControlDB("localhost", "root", "root", "testDB")
-# db.resetDatabase()
-#dt = datetime.now().replace(microsecond=0)
+db = HighControlDB(p_databaseName="testdb")
+db.resetDatabase()
+
+i = 0
+currentTime = datetime.now().replace(microsecond=0)
+currentTimeInc = datetime.now().replace(microsecond=0) + timedelta(hours=1)
+print("Current Time: ", currentTime)
+while i < 500:
+    operator = random.randint(0, 1)
+    if (operator == 0):
+        randDT = currentTime - timedelta(hours=random.randint(0, 24))  # 4days
+    else:
+        randDT = currentTime + timedelta(hours=random.randint(0, 24))  # 4days
+
+    operator = random.randint(0, 1)
+    if (operator == 0):
+        randDT -= timedelta(minutes=random.randint(0, 10))
+    else:
+        randDT += timedelta(minutes=random.randint(0, 10))
+
+    # if (randDT >= currentTime and randDT <= (currentTime + timedelta(hours=1))):
+    #     print(randDT)
+
+    db.insert("customers_health_record ", ["u_id", "s_id", "dt_rec"], [
+        random.randint(1, 100), random.randint(1, 10), str(randDT)])
+    i += 1
+
+dtFilter = "SELECT * FROM customers_health_record WHERE dt_rec BETWEEN \"{}\" AND \"{}\"".format(
+    str(currentTime), str(currentTimeInc))
+
+print(dtFilter)
 # i = 0
 # while i < 40:
 #     db.insert("customers_health_record ", ["u_id", "s_id", "dt_rec"], [
@@ -48,9 +76,11 @@ db = HighControlDB("localhost", "root", "root", "testDB")
 #     i += 1
 
 
-def incrementHR(dtStr="2021-04-25 00:41:00"):
-    dtObj = datetime.strptime(dtStr, '%Y-%m-%d %H:%M:%S') + timedelta(hours=1)
-    return str(dtObj)
-print(incrementHR())
+# def incrementHR(dtStr="2021-04-25 00:41:00"):
+#     dtObj = datetime.strptime(dtStr, '%Y-%m-%d %H:%M:%S') + timedelta(hours=1)
+#     return str(dtObj)
+
+
+# print(incrementHR())
 
 # dt_rec BETWEEN "2021-04-25 00:41:00" AND "2021-04-25 01:41:00"

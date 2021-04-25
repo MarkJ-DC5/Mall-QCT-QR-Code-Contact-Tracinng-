@@ -14,9 +14,6 @@ class Database:
         try:
             print("Connecting to Database...")
 
-            if(p_host == "remotemysql.com"):
-                p_databaseName = p_user
-
             self.db = mysql.connector.connect(
                 host=p_host,
                 user=p_user,
