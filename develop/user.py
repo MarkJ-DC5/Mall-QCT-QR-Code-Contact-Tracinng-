@@ -32,7 +32,7 @@ class User:
         self._db.insert("Users", ["c_num", "passwd", "inf_cov", "f_name", "m_name", "l_name", "age",
                                   "gender", "street", "barangay", "city", "country", "dt_add"], values)
 
-    def loadData(self, data):
+    def __loadData(self, data):
         # """ Loads data passed by the verify userFunction """"
         i = 0
         for col in self.info:
@@ -46,7 +46,7 @@ class User:
             "SELECT * FROM Users WHERE c_num IN (\"{}\") AND passwd IN (\"{}\") ".format(p_cNum, p_passwd))
 
         if(data != []):
-            self.loadData(data)
+            self.__loadData(data)
             return True
         else:
             return False

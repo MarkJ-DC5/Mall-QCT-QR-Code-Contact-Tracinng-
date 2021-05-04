@@ -80,38 +80,4 @@ class HighControlDB(Database):
 
 
 # db = HighControlDB("localhost", "root", "root", "Development")
-# db.createHlthDecRec()
-# database.resetDatabase()
-
-
-# i = 0
-# while i < 20:
-#     db.insert("customers_health_record ", ["u_id", "s_id", "dt_rec"], [
-#               random.randint(1, 10), random.randint(1, 5), dt])
-#     i += 1
-
-
-def dencryptCredsFromFile(filename="credential.txt"):
-    file = open(filename, 'r')
-    key = str.encode(file.readline()[:-1])
-    encryption_type = Fernet(key)
-
-    creds = []
-    creds.append(str(encryption_type.decrypt(
-        str.encode(file.readline()[:-1])))[2:-1])
-    creds.append(str(encryption_type.decrypt(
-        str.encode(file.readline()[:-1])))[2:-1])
-    creds.append(str(encryption_type.decrypt(
-        str.encode(file.readline()[:-1])))[2:-1])
-    creds.append(str(encryption_type.decrypt(
-        str.encode(file.readline()[:-1])))[2:-1])
-
-    file.close()
-    return creds
-
-
-# encryptCredsToFile("localhost", "root", "root",
-#                    "testdb", "Test/credetials.txt")
-print(dencryptCredsFromFile())
-# b'e70uZngEEePhpiAy5EqaRcNbgsqYgTApzK0d5w_3XFU='
-# db = HighControlDB(dencryptCredsFromFile())
+db = HighControlDB(p_databaseName="testdb")

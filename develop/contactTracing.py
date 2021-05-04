@@ -1,17 +1,23 @@
 from database import Database
 from datetime import datetime, timedelta
 
+# To do
+# Handle multiple traces
+# Save uID of first infected in database
+# Delete trace after 7days
+
 
 class ContactTracing():
     def __init__(self, p_infected, p_database, p_dtStr, p_maxLevel=3):
         self.__infected = p_infected
         self.__database = p_database
+        self.__dateInfected = p_dtStr
         self.recordedStores = []  # no heirchy
         self.recordedContacts = [self.__infected]  # no heirchy
         self.contact = {}
         self.contact[self.__infected] = None
-        self.test(self.contact, self.recordedStores,
-                  self.recordedContacts, p_dtStr, p_maxLevel)
+        self.TraceContacts(self.contact, self.recordedStores,
+                           self.recordedContacts, p_dtStr, p_maxLevel)
 
     def convertToArray(self, arrayOfTup):
         ''' Converts the tuples of IDs to array '''
@@ -81,9 +87,9 @@ class ContactTracing():
 
         return infectedPersons
 
-    def test(self, dictStuff, recStores, recPers, dtStr, maxLevel, level=0):
+    def TraceContacts(self, traced, recStores, recPers, dtStr, maxLevel, level=0):
         if level < maxLevel:
-            for key in dictStuff.keys():
+            for key in traced.keys():
                 retreivedStores = self.getInfectedStores(key, recStores, dtStr)
                 if len(retreivedStores) != 0:
                     retreivedUsers = self.getInfectedPerson(
@@ -93,13 +99,14 @@ class ContactTracing():
 
                     level += 1
                     if (len(retreivedUsers) != 0):
-                        dictStuff[key] = dict.fromkeys(retreivedUsers)
-                        self.test(dictStuff[key], recStores,
-                                  recPers, self.incrementHR(dtStr), maxLevel, level)
+                        traced[key] = dict.fromkeys(retreivedUsers)
+                        self.TraceContacts(traced[key], recStores,
+                                           recPers, self.incrementHR(dtStr), maxLevel, level)
                     else:
-                        dictStuff[key] = None
+                        traced[key] = None
 
 
 db = Database("f", filename="develop/dbTestCred.txt")
+# update; first stores should be filtered by day only
 trace = ContactTracing('46', db, "2021-04-25 17:39:30", 3)
 print(trace.contact)

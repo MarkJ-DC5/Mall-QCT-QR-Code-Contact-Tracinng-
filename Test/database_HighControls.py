@@ -69,18 +69,3 @@ dtFilter = "SELECT * FROM customers_health_record WHERE dt_rec BETWEEN \"{}\" AN
     str(currentTime), str(currentTimeInc))
 
 print(dtFilter)
-# i = 0
-# while i < 40:
-#     db.insert("customers_health_record ", ["u_id", "s_id", "dt_rec"], [
-#               random.randint(1, 40), random.randint(1, 10), dt])
-#     i += 1
-
-
-# def incrementHR(dtStr="2021-04-25 00:41:00"):
-#     dtObj = datetime.strptime(dtStr, '%Y-%m-%d %H:%M:%S') + timedelta(hours=1)
-#     return str(dtObj)
-
-
-# print(incrementHR())
-
-# dt_rec BETWEEN "2021-04-25 00:41:00" AND "2021-04-25 01:41:00"
