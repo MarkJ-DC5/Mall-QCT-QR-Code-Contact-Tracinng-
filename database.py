@@ -11,7 +11,7 @@ system('cls')
 
 
 class Database:
-    def __init__(self, loadFrom='f', host="localhost", user="root", password="root", databaseName="testdb", filename="develop/dbCreds.txt"):
+    def __init__(self, loadFrom='f', host="localhost", user="root", password="root", databaseName="testdb", filename="dbCreds.txt"):
         try:
             print("Connecting to Database...")
             self.__host = ""
@@ -88,6 +88,7 @@ class Database:
         print("Credentials saved to {}".format(filename))
 
     def query(self, command):
+        print(command)
         self.dbCursor.execute(command)
         return self.dbCursor.fetchall()
 
@@ -106,10 +107,17 @@ class Database:
         self.query(insert)
         self.commit()
 
+    def update(self, table, cols, values, condition):
+        toChange = ""
+        for i, col in enumerate(cols):
+            if (type(values[i]) == str):
+                temp = "{} = \"{}\", ".format(col, values[i])
+            else:
+                temp = "{} = {}, ".format(col, values[i])
+            toChange += temp
+        self.query("UPDATE {} SET {} WHERE {}".format(
+            table, toChange[:-2], condition))
+        self.commit()
+
     def __del__(self):
         print("Object Cleared")
-
-
-# db = Database('f', filename="develop/dbTestCred.txt")
-
-

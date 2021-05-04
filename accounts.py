@@ -1,7 +1,10 @@
-from user import *
+from user import User
+import qrcode
+import cv2 as cv
+from PIL import Image
 
 
-class Owner(User):
+class Customer(User):
     def readQR(self, img):
         try:
             val, points, straight_qrcode = cv.QRCodeDetector().detectAndDecode(cv.imread(img))
@@ -16,5 +19,8 @@ class Owner(User):
             print("Error in Reading QR Code")
 
 
-own1 = Owner()
-print(own1.readQR("id_qrCode.jpg"))
+class Admin(User):
+    def generateQRCode(self):
+        id_qrCode = qrcode.make(self.__info['uID'])
+        id_qrCode.save("id_qrCode.jpg")
+        pass

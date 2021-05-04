@@ -10,7 +10,8 @@ class HighControlDB(Database):
             u_id int PRIMARY KEY AUTO_INCREMENT NOT NULL,\
             c_num VARCHAR(16) NOT NULL,\
             passwd VARCHAR(20) NOT NULL,\
-            inf_cov ENUM('T', 'F') NOT NULL,\
+            type ENUM('C', 'A') NOT NULL,\
+            inf_cov ENUM('NC', 'PC', 'FC', 'SC', 'TC') NOT NULL,\
             f_name VARCHAR(30) NOT NULL,\
             m_name VARCHAR(30) NOT NULL,\
             l_name VARCHAR(30) NOT NULL,\
@@ -31,7 +32,6 @@ class HighControlDB(Database):
             store_num smallint NOT NULL,\
             floor smallint UNSIGNED NOT NULL,\
             wing ENUM('North','South','East', 'West') NOT NULL,\
-            u_id int, FOREIGN KEY(u_id) REFERENCES Users(u_id),\
             name VARCHAR(50) NOT NULL,\
             contact_num int NOT NULL,\
             email VARCHAR(150) NOT NULL,\
@@ -77,7 +77,3 @@ class HighControlDB(Database):
         self.createStoresTable()
         self.createCustHlthRec()
         self.createHlthDecRec()
-
-
-# db = HighControlDB("localhost", "root", "root", "Development")
-db = HighControlDB(p_databaseName="testdb")
