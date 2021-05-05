@@ -7,12 +7,11 @@ from database import Database, random
 from database_HighControls import HighControlDB
 from user import User
 
-db = Database()
-dbH = HighControlDB()
+db = HighControlDB()
 
 
 def reset():
-    dbH.resetDatabase()
+    db.resetDatabase()
 
 
 def addNewUser():
@@ -50,7 +49,7 @@ def login():
 
 def removing():
     tempUser = User(db)
-    tempUser.verifyUser(123, 'qwe')
+    tempUser.verifyUser("09001", 'passwd')
     tempUser.removeUser()
 
 
@@ -128,20 +127,25 @@ def GenerateQR(storeNum):
 
 def ReadQR():
     cust = Customer(db)
-    cust.verifyUser("09001", "passwd")
+    cust.verifyUser("09002", "passwd")
     cust.readQR("QRcodes/4_4_Kripy Kreme.jpg")
+
+
+ReadQR()
 
 
 def customerTest():
     cust = Admin(db)
     cust.verifyUser("09001", "passwd")
     # print(cust.getInfo())
-    # print(cust.countEntered())
+    print(cust.countEntered())
     # print(cust.getStoreWithHighCount())
-    # print(cust.getStoreWithLowCount())
+    print(cust.getStoreWithLowCount())
     # cust.getHistory()
 
 
-customerTest()
+# customerTest()
+
 # GenerateQR(1)
 # GenerateQR(5)
+# print((db.query("SELECT * FROM users WHERE u_id = 1"))[-])

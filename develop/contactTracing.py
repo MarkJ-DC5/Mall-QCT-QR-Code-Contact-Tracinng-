@@ -106,7 +106,7 @@ class ContactTracing():
                         traced[key] = None
 
 
-db = Database("f", filename="develop/dbTestCred.txt")
+db = Database("f", self._fileName="develop/dbTestCred.txt")
 # update; first stores should be filtered by day only
 trace = ContactTracing('46', db, "2021-04-25 17:39:30", 3)
 print(trace.contact)
