@@ -1,17 +1,16 @@
+import random
 from datetime import datetime
-from cryptography.fernet import Fernet
 from os import system
 
-import cv2 as cv
 import mysql.connector
-import qrcode
-from PIL import Image
+from cryptography.fernet import Fernet
 
 system('cls')
 
 
 class Database:
     def __init__(self, loadFrom='f', host="localhost", user="root", password="root", databaseName="testdb", filename="dbCreds.txt"):
+        self.__isConnected = False
         try:
             print("Connecting to Database...")
             self.__host = ""
@@ -20,7 +19,7 @@ class Database:
             self.__databaseName = ""
 
             if (loadFrom == 'f'):
-                print("Loading Credential from {}".format(filename))
+                print("Loading Credentials from {}".format(filename))
                 credentials = self.__loadCredsFromFile(filename)
                 self.__host = credentials[0]
                 self.__user = credentials[1]
@@ -28,7 +27,7 @@ class Database:
                 self.__databaseName = credentials[3]
 
             elif (loadFrom == 'p'):
-                print("Loading from passed Argument")
+                print("Loading Credentials from passed Argument")
                 self.__host = host
                 self.__user = user
                 self.__password = password
@@ -45,10 +44,12 @@ class Database:
             self.dbCursor = self.db.cursor()
             print("Connection to Database \"{}\" Established".format(
                 self.__databaseName))
+            self.__isConnected = True
 
         except Exception as e:
             print(e)
             print("Error: Connection to Databse Not Established")
+            self.__isConnected = False
 
     def __loadCredsFromFile(self, filename):
         file = open(filename, 'r')
@@ -69,55 +70,84 @@ class Database:
         return credential
 
     def saveCurrentCreds(self, filename="develop/dbCreds.txt"):
-        key = Fernet.generate_key()
-        encryption_type = Fernet(key)
+        if (self.__isConnected):
+            key = Fernet.generate_key()
+            encryption_type = Fernet(key)
 
-        file = open(filename, 'w')
-        file.write(str(key)[2:-1] + "\n")
+            file = open(filename, 'w')
+            file.write(str(key)[2:-1] + "\n")
 
-        # encrypted_message = encryption_type.encrypt(b"Hello World")
-        file.write(str(encryption_type.encrypt(
-            str.encode(self.__host)))[2:-1] + "\n")
-        file.write(str(encryption_type.encrypt(
-            str.encode(self.__user)))[2:-1] + "\n")
-        file.write(str(encryption_type.encrypt(
-            str.encode(self.__password)))[2:-1] + "\n")
-        file.write(str(encryption_type.encrypt(
-            str.encode(self.__databaseName)))[2:-1] + "\n")
-        file.close()
-        print("Credentials saved to {}".format(filename))
+            # encrypted_message = encryption_type.encrypt(b"Hello World")
+            file.write(str(encryption_type.encrypt(
+                str.encode(self.__host)))[2:-1] + "\n")
+            file.write(str(encryption_type.encrypt(
+                str.encode(self.__user)))[2:-1] + "\n")
+            file.write(str(encryption_type.encrypt(
+                str.encode(self.__password)))[2:-1] + "\n")
+            file.write(str(encryption_type.encrypt(
+                str.encode(self.__databaseName)))[2:-1] + "\n")
+            file.close()
+            print("Credentials saved to {}".format(filename))
+
+            return True
+        else:
+            print("Not Connected to Database")
+            return False
 
     def query(self, command):
-        print(command)
-        self.dbCursor.execute(command)
-        return self.dbCursor.fetchall()
+        if (self.__isConnected):
+            print("Query:", command)
+            self.dbCursor.execute(command)
+            data = self.dbCursor.fetchall()
+            if (len(data) == 1):
+                return data[0]
+            else:
+                return data
+        else:
+            print("Not Connected to Database")
+            return False
 
     def commit(self):
-        self.db.commit()
+        if (self.__isConnected):
+            self.db.commit()
+
+            return True
+        else:
+            print("Not Connected to Database")
+            return False
 
     def insert(self, table, cols, values):
-        colsString = "("
-        for col in cols:
-            colsString += col + ", "
-        else:
-            colsString = colsString[:-2] + ")"
+        if (self.__isConnected):
+            colsString = "("
+            for col in cols:
+                colsString += col + ", "
+            else:
+                colsString = colsString[:-2] + ")"
 
-        insert = "INSERT INTO {0} {1} VALUES {2}".format(
-            table, colsString, tuple(values))
-        self.query(insert)
-        self.commit()
+            insert = "INSERT INTO {0} {1} VALUES {2}".format(
+                table, colsString, tuple(values))
+            self.query(insert)
+            self.commit()
+
+            return True
+        else:
+            print("Not Connected to Database")
+            return False
 
     def update(self, table, cols, values, condition):
-        toChange = ""
-        for i, col in enumerate(cols):
-            if (type(values[i]) == str):
-                temp = "{} = \"{}\", ".format(col, values[i])
-            else:
-                temp = "{} = {}, ".format(col, values[i])
-            toChange += temp
-        self.query("UPDATE {} SET {} WHERE {}".format(
-            table, toChange[:-2], condition))
-        self.commit()
+        if (self.__isConnected):
+            toChange = ""
+            for i, col in enumerate(cols):
+                if (type(values[i]) == str):
+                    temp = "{} = \"{}\", ".format(col, values[i])
+                else:
+                    temp = "{} = {}, ".format(col, values[i])
+                toChange += temp
+            self.query("UPDATE {} SET {} WHERE {}".format(
+                table, toChange[:-2], condition))
+            self.commit()
 
-    def __del__(self):
-        print("Object Cleared")
+            return True
+        else:
+            print("Not Connected to Database")
+            return False

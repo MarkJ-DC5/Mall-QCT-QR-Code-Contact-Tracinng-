@@ -29,7 +29,11 @@ class Database:
 
     def query(self, command):
         self.dbCursor.execute(command)
-        return self.dbCursor.fetchall()
+        data = self.dbCursor.fetchall()
+        if (len(data) == 1):
+            return data[0]
+        else:
+            return
 
     def commit(self):
         self.db.commit()
