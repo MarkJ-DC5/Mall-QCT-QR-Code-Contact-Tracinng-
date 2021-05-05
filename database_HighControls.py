@@ -3,22 +3,21 @@ from database import Database, datetime, random
 
 class HighControlDB(Database):
     def createUsersTable(self):
-        if (self.__isConnected):
+        if (self._isConnected):
             self.query("DROP TABLE IF EXISTS Users")
             self.query("CREATE TABLE Users (\
                 u_id int PRIMARY KEY AUTO_INCREMENT NOT NULL,\
                 c_num VARCHAR(16) NOT NULL,\
                 passwd VARCHAR(20) NOT NULL,\
                 type ENUM('C', 'A') NOT NULL,\
-                inf_cov ENUM('NC', 'PC', 'FC', 'SC', 'TC') NOT NULL,\
+                inf_cov ENUM('Healthy', 'Primary Inf', 'First Contact', 'Second Contact', 'Third Contact') NOT NULL,\
                 f_name VARCHAR(30) NOT NULL,\
                 l_name VARCHAR(30) NOT NULL,\
                 age smallint NOT NULL,\
-                gender ENUM('M','F','O') NOT NULL,\
+                gender ENUM('Male','Female','Other') NOT NULL,\
                 street VARCHAR(30) NOT NULL,\
                 barangay VARCHAR(30) NOT NULL,\
                 city VARCHAR(30) NOT NULL,\
-                country VARCHAR(30) NOT NULL,\
                 dt_add date NOT NULL,\
                 dt_rem date NULL DEFAULT NULL)")
             print("Users Table Created")
@@ -29,7 +28,7 @@ class HighControlDB(Database):
             return False
 
     def createStoresTable(self):
-        if (self.__isConnected):
+        if (self._isConnected):
             self.query("DROP TABLE IF EXISTS Stores")
             self.query("CREATE TABLE Stores (\
                 s_id int PRIMARY KEY AUTO_INCREMENT NOT NULL,\
@@ -49,7 +48,7 @@ class HighControlDB(Database):
             return False
 
     def createCustHlthRec(self):
-        if (self.__isConnected):
+        if (self._isConnected):
             self.query("DROP TABLE IF EXISTS Customers_Health_Record")
             self.query("CREATE TABLE Customers_Health_Record (\
                 u_id int, FOREIGN KEY(u_id) REFERENCES Users(u_id),\
@@ -63,7 +62,7 @@ class HighControlDB(Database):
             return False
 
     def createHlthDecRec(self):
-        if (self.__isConnected):
+        if (self._isConnected):
             self.query("DROP TABLE IF EXISTS Heath_Declaration_Record")
             self.query("CREATE TABLE Heath_Declaration_Record(\
                 u_id int, FOREIGN KEY(u_id) REFERENCES Users(u_id),\
@@ -89,7 +88,7 @@ class HighControlDB(Database):
             return False
 
     def resetDatabase(self):
-        if (self.__isConnected):
+        if (self._isConnected):
             self.query("DROP TABLE IF EXISTS Customers_Health_Record")
             self.query("DROP TABLE IF EXISTS Stores")
             # self.query("DROP TABLE IF EXISTS Heath_Declaration_Record")

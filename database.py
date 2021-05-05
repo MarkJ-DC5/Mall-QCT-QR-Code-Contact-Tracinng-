@@ -10,7 +10,7 @@ system('cls')
 
 class Database:
     def __init__(self, loadFrom='f', host="localhost", user="root", password="root", databaseName="testdb", filename="dbCreds.txt"):
-        self.__isConnected = False
+        self._isConnected = False
         try:
             print("Connecting to Database...")
             self.__host = ""
@@ -44,12 +44,12 @@ class Database:
             self.dbCursor = self.db.cursor()
             print("Connection to Database \"{}\" Established".format(
                 self.__databaseName))
-            self.__isConnected = True
+            self._isConnected = True
 
         except Exception as e:
             print(e)
             print("Error: Connection to Databse Not Established")
-            self.__isConnected = False
+            self._isConnected = False
 
     def __loadCredsFromFile(self, filename):
         file = open(filename, 'r')
@@ -70,7 +70,7 @@ class Database:
         return credential
 
     def saveCurrentCreds(self, filename="develop/dbCreds.txt"):
-        if (self.__isConnected):
+        if (self._isConnected):
             key = Fernet.generate_key()
             encryption_type = Fernet(key)
 
@@ -95,7 +95,7 @@ class Database:
             return False
 
     def query(self, command):
-        if (self.__isConnected):
+        if (self._isConnected):
             print("Query:", command)
             self.dbCursor.execute(command)
             data = self.dbCursor.fetchall()
@@ -108,7 +108,7 @@ class Database:
             return False
 
     def commit(self):
-        if (self.__isConnected):
+        if (self._isConnected):
             self.db.commit()
 
             return True
@@ -117,7 +117,7 @@ class Database:
             return False
 
     def insert(self, table, cols, values):
-        if (self.__isConnected):
+        if (self._isConnected):
             colsString = "("
             for col in cols:
                 colsString += col + ", "
@@ -135,7 +135,7 @@ class Database:
             return False
 
     def update(self, table, cols, values, condition):
-        if (self.__isConnected):
+        if (self._isConnected):
             toChange = ""
             for i, col in enumerate(cols):
                 if (type(values[i]) == str):

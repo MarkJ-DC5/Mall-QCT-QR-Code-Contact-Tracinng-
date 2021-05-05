@@ -12,7 +12,6 @@ dbH = HighControlDB()
 
 
 def reset():
-    dbH = HighControlDB()
     dbH.resetDatabase()
 
 
@@ -34,7 +33,7 @@ def login():
         password = input("Password: ")
 
         if (tempUser.verifyUser(number, password)):
-            mode = tempUser.getType()
+            mode = tempUser.getUserType()
             if (mode == 'C'):
                 user = Customer(db)
             elif (mode == 'A'):
@@ -103,20 +102,20 @@ def addManyNewUSers(count):
         lname = names.get_last_name()
         age = random.randint(18, 40)
         if (random.randint(0, 1) == 1):
-            sex = 'M'
+            sex = 'Male'
         else:
-            sex = 'F'
+            sex = 'Female'
         # print(strCNum, fname, lname, age, sex)
-        tempUser.newUser(strCNum, "passwd", 'C', "NC", fname,
-                         lname, age, sex, "street", "barangay", "city", "Philippines")
-    tempUser.newUser("1111", "qwer", 'A', 'NC', "Mark", "Cruz",
-                     20, 'M', "street", "barangay", "city", "Philippines")
+        tempUser.newUser(strCNum, "passwd", 'C', "Healthy", fname,
+                         lname, age, sex, "street", "barangay", "city")
+    tempUser.newUser("1111", "qwer", 'A', "Healthy", "Mark", "Cruz",
+                     20, "Male", "street", "barangay", "city")
 
 
-def GenerateQR():
+def GenerateQR(storeNum):
     adminUser = Admin(db)
     adminUser.verifyUser("1111", "qwer")
-    tempStore = adminUser.getStoreInfo(3)
+    tempStore = adminUser.getStoreInfo(storeNum)
     print(tempStore)
     if (input("Is right? Y/N ") == "Y"):
         adminUser.generateQRCode(tempStore)
@@ -130,4 +129,19 @@ def GenerateQR():
 def ReadQR():
     cust = Customer(db)
     cust.verifyUser("09001", "passwd")
-    # cust.readQR("QRcodes/2_2_Jollibee.jpg")
+    cust.readQR("QRcodes/4_4_Kripy Kreme.jpg")
+
+
+def customerTest():
+    cust = Admin(db)
+    cust.verifyUser("09001", "passwd")
+    # print(cust.getInfo())
+    # print(cust.countEntered())
+    # print(cust.getStoreWithHighCount())
+    # print(cust.getStoreWithLowCount())
+    # cust.getHistory()
+
+
+customerTest()
+# GenerateQR(1)
+# GenerateQR(5)
