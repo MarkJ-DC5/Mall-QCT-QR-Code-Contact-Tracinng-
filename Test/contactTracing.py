@@ -1,4 +1,4 @@
-from database import Database
+from database_HighControls import HighControlDB, random
 from datetime import datetime, timedelta
 
 # To do
@@ -22,8 +22,12 @@ class ContactTracing():
     def convertToArray(self, arrayOfTup):
         ''' Converts the tuples of IDs to array '''
         ids = []
-        for tup in arrayOfTup:
-            ids.append(str(tup)[1:-2])
+        if (type(arrayOfTup) == tuple):
+            for tup in arrayOfTup:
+                ids.append(str(tup))
+        else:
+            for tup in arrayOfTup:
+                ids.append(str(tup[0]))
         return ids
 
     def incrementHR(self, dtStr):
@@ -98,15 +102,67 @@ class ContactTracing():
                     recPers += retreivedUsers
 
                     level += 1
-                    if (len(retreivedUsers) != 0):
-                        traced[key] = dict.fromkeys(retreivedUsers)
-                        self.TraceContacts(traced[key], recStores,
-                                           recPers, self.incrementHR(dtStr), maxLevel, level)
-                    else:
-                        traced[key] = None
+                    # if (len(retreivedUsers) != 0):
+                    #     traced[key] = dict.fromkeys(retreivedUsers)
+                    #     self.TraceContacts(traced[key], recStores,
+                    #                        recPers, self.incrementHR(dtStr), maxLevel, level)
+                    # else:
+                    #     traced[key] = None
 
 
-db = Database("f", self._fileName="develop/dbTestCred.txt")
+db = HighControlDB("f", fileName="develop/dbTestCred.txt")
+
+
+def resetCustHlthRec():
+    db.query("DROP TABLE IF EXISTS Customers_Health_Record")
+    db.query("CREATE TABLE Customers_Health_Record (\
+        u_id int,\
+        s_id int,\
+        dt_rec datetime NOT NULL)")
+    print("Customers_Health_Record Table Created")
+
+
+def fillCCustHlthRec(intances=100, people=100, stores=15, timeDif=24):
+    currentDT = datetime.now().replace(microsecond=0)
+    # currentTimeInc = datetime.now().replace(microsecond=0) + timedelta(hours=1)
+    print("Current Time: ", currentDT)
+
+    i = 0
+    while i < intances:
+        operator = random.randint(0, 1)
+        if (operator == 0):
+            randDT = currentDT - \
+                timedelta(hours=random.randint(0, timeDif))
+        else:
+            randDT = currentDT + \
+                timedelta(hours=random.randint(0, timeDif))
+
+        operator = random.randint(0, 1)
+        if (operator == 0):
+            randDT -= timedelta(minutes=random.randint(0, 50))
+        else:
+            randDT += timedelta(minutes=random.randint(0, 50))
+
+        uID = random.randint(1, people)
+        sID = random.randint(1, stores)
+
+        recent = db.query("SELECT COUNT(u_id) FROM customers_health_record WHERE s_id = {} AND u_id = {} AND dt_rec BETWEEN \"{}\" and \"{}\"".format(
+            uID, sID, str(randDT - timedelta(hours=1)), str(randDT)))
+        recent = recent[0]
+
+        if (recent == 0):
+            db.insert("customers_health_record ", ["u_id", "s_id", "dt_rec"], [
+                uID, sID, str(randDT)])
+        else:
+            print("Recent Entr Already Exist")
+
+        i += 1
+
+
+# resetCustHlthRec()
+# fillCCustHlthRec(intances=500, timeDif=0)
+
+
 # update; first stores should be filtered by day only
-trace = ContactTracing('46', db, "2021-04-25 17:39:30", 3)
+trace = ContactTracing('55', db, "2021-05-06 14:56:53", 3)
 print(trace.contact)

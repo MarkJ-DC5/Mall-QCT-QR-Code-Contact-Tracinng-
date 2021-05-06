@@ -104,9 +104,10 @@ def addManyNewUSers(count):
         else:
             sex = 'Female'
         # print(strCNum, fname, lname, age, sex)
-        tempUser.newUser(strCNum, "passwd", 'C', "Healthy", fname,
+        tempUser.newUser(strCNum, "passwd", 'C', fname,
                          lname, age, sex, "street", "barangay", "city")
-    tempUser.newUser("1111", "qwer", 'A', "Healthy", "Mark", "Cruz",
+
+    tempUser.newUser("1111", "qwer", 'A', "Mark", "Cruz",
                      20, "Male", "street", "barangay", "city")
 
 
@@ -131,7 +132,7 @@ def customerTest():
     cust = Customer(db)
     cust.verifyUser("09001", "passwd")
     # print(cust.getInfo())
-    # print(cust.countEntered())
+    print(cust.countEntered())
     # print(cust.getStoreWithHighCount())
     # print(cust.getStoreWithLowCount())
     # cust.getHistory()
@@ -139,6 +140,9 @@ def customerTest():
     # cust.updateHealthStatus()
     # cust.updateInfo(["u_id", "c_num", "passwd", "type", "inf_cov", "f_name", "l_name", "age", "gender", "street", "barangay", "city", "dt_add", "dt_rem"], [
     #                 110, "1234", "qwert", "A", "Healthy", "Monica", "Geller", 30, "Female", "s", "b", "c", str(datetime.now()), str(datetime.now())])
+
+
+customerTest()
 
 
 def adminTest():
@@ -149,8 +153,4 @@ def adminTest():
     # admin.deleteStore(1)
     # admin.updateProofStat(1, 'Approved')
     # admin.newStore(20, 2, "West", "Something", "0900", "@email.com")
-    admin.getStores()
-
-
-# customerTest()
-adminTest()
+    # admin.getStores()

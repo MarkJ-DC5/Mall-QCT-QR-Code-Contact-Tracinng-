@@ -90,7 +90,7 @@ class User:
         child.setInfo(self._info)
 
     def countEntered(self):
-        counted = self._db.query("SELECT COUNT(DISTINCT u_id) FROM customers_health_record WHERE dt_rec BETWEEN \"{0} 0:00:00\" AND \"{0} 23:59:00\"".format(
+        counted = self._db.query("SELECT COUNT(DISTINCT u_id) FROM customers_health_record WHERE dt_rec LIKE \"{}%\"".format(
             str(datetime.now().date())))
         counted = counted[0]
         return counted
