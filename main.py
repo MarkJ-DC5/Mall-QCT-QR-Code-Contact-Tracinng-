@@ -1,7 +1,6 @@
-from os import O_TEMPORARY, read
+from os import O_TEMPORARY, read, write
 
 import names
-
 from accounts import *
 from database import Database, random
 from database_HighControls import HighControlDB
@@ -120,9 +119,6 @@ def GenerateQR(storeNum):
         adminUser.generateQRCode(tempStore)
     else:
         print("Abort!!!")
-    # reset()
-    # addStores()
-    # addManyNewUSers(100)
 
 
 def ReadQR():
@@ -131,21 +127,30 @@ def ReadQR():
     cust.readQR("QRcodes/4_4_Kripy Kreme.jpg")
 
 
-ReadQR()
-
-
 def customerTest():
-    cust = Admin(db)
+    cust = Customer(db)
     cust.verifyUser("09001", "passwd")
     # print(cust.getInfo())
-    print(cust.countEntered())
+    # print(cust.countEntered())
     # print(cust.getStoreWithHighCount())
-    print(cust.getStoreWithLowCount())
+    # print(cust.getStoreWithLowCount())
     # cust.getHistory()
+    # cust.uploadProof("link to something")
+    # cust.updateHealthStatus()
+    # cust.updateInfo(["u_id", "c_num", "passwd", "type", "inf_cov", "f_name", "l_name", "age", "gender", "street", "barangay", "city", "dt_add", "dt_rem"], [
+    #                 110, "1234", "qwert", "A", "Healthy", "Monica", "Geller", 30, "Female", "s", "b", "c", str(datetime.now()), str(datetime.now())])
+
+
+def adminTest():
+    admin = Admin(db)
+    admin.verifyUser("1111", "qwer")
+    print(admin.getPendingProof())
+    # admin.deleteAccount()
+    # admin.deleteStore(1)
+    # admin.updateProofStat(1, 'Approved')
+    # admin.newStore(20, 2, "West", "Something", "0900", "@email.com")
+    admin.getStores()
 
 
 # customerTest()
-
-# GenerateQR(1)
-# GenerateQR(5)
-# print((db.query("SELECT * FROM users WHERE u_id = 1"))[-])
+adminTest()
