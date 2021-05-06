@@ -8,16 +8,17 @@ class Contact():
         self.__primeInfected = infID
         self.__db = database
         self.__maxDepth = depth
-        self.__dateEntered = None
+        self.__dateEntered = self.__setDateEntered()
         self.__unordInfPerson = [self.__primeInfected]
         self.__unordInfStores = []
 
         self.__ordInfPerson = {}    # {'55': {24: None}}
         self.__ordInfPerson[self.__primeInfected] = None
+        self.__trace(self.__ordInfPerson, self.__dateEntered)
 
-    def setDateEntered(self):
+    def __setDateEntered(self):
         self.__dateEntered = self.__db.query(
-            "SELECT dt_rec FROM customers_health_record  WHERE u_id = {}  ORDER BY dt_rec ASC LIMIT 1".format(self.__primeInfected))
+            "SELECT dt_rec FROM customers_health_record  WHERE u_id = {}  ORDER BY dt_rec DESC LIMIT 1".format(self.__primeInfected))
 
         if(len(self.__dateEntered) > 0):
             self.__dateEntered = self.__dateEntered[0]
@@ -49,7 +50,7 @@ class Contact():
         newDT = datetime + timedelta(hours=1)
         return newDT
 
-    def getInfStores(self, infPerson, dtEnt):
+    def __getInfStores(self, infPerson, dtEnt):
         # get the list of stores visited
         infStores = self.__db.query(
             "SELECT s_id FROM customers_health_record WHERE u_id = {} AND dt_rec >= '{}'".format(
@@ -63,7 +64,7 @@ class Contact():
 
         return infStores
 
-    def getInfectees(self, infector, infStore, dtEntMall):
+    def __getInfectees(self, infector, infStore, dtEntMall):
         # get the time the infector entered the store
         dtEnt = self.__db.query("SELECT dt_rec FROM customers_health_record WHERE u_id = {} AND s_id = {} and dt_rec >= '{}' ORDER BY dt_rec ASC".format(
             infector, infStore, dtEntMall))
@@ -92,6 +93,7 @@ class Contact():
                     tempInfPersons, self.__unordInfPerson)
 
                 infPersons.extend(tempInfPersons)
+            dtEnt = dtEnt[0][0]
         # updte history of recorded
         self.__unordInfPerson += infPersons
 
@@ -99,24 +101,38 @@ class Contact():
 
         return {"infecteds": infPersons, "dtEnt": dtEnt}
 
-    def trace(self, infector, initalDT, currentDepth=0):
-        if (initalDT != None):
-            stores = self.getInfStores(infector, initalDT)
+    def __trace(self, ordInfPerson, initalDT, currentDepth=0):
+        # set the limit for the depth of recursing
+        if (currentDepth < self.__maxDepth):
+            # perform tracing for every key in the dictionary of contacts
+            for infector in ordInfPerson:
+                if (initalDT != None):
+                    stores = self.__getInfStores(infector, initalDT)
 
-            if(len(stores) > 0):
-                for store in stores:
-                    infectees = self.getInfectees(infector, store, initalDT)
-                    print(infectees["infecteds"])
+                    # create a dictionary of people contacted by the infector
+                    infectorContacts = {}
+                    for store in stores:
+                        infectees = self.__getInfectees(
+                            infector, store, initalDT)
+
+                        # fills the list of contacted person
+                        for infected in infectees["infecteds"]:
+                            infectorContacts[infected] = None
+
+                    # the dictority for the contacted people is then set as the value for of the infector key
+                    if (len(infectorContacts) > 0):
+                        ordInfPerson[infector] = infectorContacts
+                        currentDepth += 1
+                        self.__trace(infectorContacts,
+                                     infectees["dtEnt"], currentDepth)
+
+                    elif (len(infectorContacts) == 0):
+                        ordInfPerson[infector] = None
+
+            # print(infectees["infecteds"])
 
     def getTracedContact(self):
         return self.__ordInfPerson
-
-        # if (currentDepth < self.__maxDepth):
-        #     stores = ct.getInfStores(55, dt)
-
-        #     print(currentDepth)
-        #     currentDepth += 1
-        #     self.trace(infector, initalDT, currentDepth)
 
 
 db = HighControlDB("f", fileName="dbTestCred.txt")
@@ -169,21 +185,14 @@ def fillCCustHlthRec(intances=100, people=100, stores=15, timeDif=24):
 
 
 # resetCustHlthRec()
-# fillCCustHlthRec(intances=300, people=50)
+# fillCCustHlthRec(intances=2500, people=100, timeDif=72)
 # instances directly
 # people inversely
 # timedef inversely
 
-
-id = 1
-ct = Contact(id, db)
-dt = ct.setDateEntered()
-print(dt)
-# stores = ct.getInfStores(55, dt)
-# print(stores)
-# persons = ct.getInfectees(55, 15, dt)
-# print(persons[0])
-# stores = ct.getInfStores(45, persons[1])
-# print(stores)
-ct.trace(id, dt)
-print(ct.getTracedContact())
+i = 1
+while i <= 100:
+    id = i
+    ct = Contact(id, db)
+    print(ct.getTracedContact())
+    i += 1

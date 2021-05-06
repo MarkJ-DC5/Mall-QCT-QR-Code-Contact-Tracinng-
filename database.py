@@ -98,7 +98,7 @@ class Database:
 
     def query(self, command):
         if (self._isConnected):
-            print("Query:", command)
+            # print("Query:", command)
             self.dbCursor.execute(command)
             data = self.dbCursor.fetchall()
             if (len(data) == 1):
