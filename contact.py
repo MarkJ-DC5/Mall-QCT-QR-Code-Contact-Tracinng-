@@ -10,9 +10,28 @@ class Contact():
         self.__Traces = []
 
         # start tracing on construct
+        # self.updateTracedDB()
         # self.__primaryInfecteds = self.getPrimaryInfecteds()
         # self.__Traces = self.multipleTrace(self.__primaryInfecteds)
         # self.uploadPrimeInfs()
+
+    def updateTracedDB(self):
+        self.__db.query("SET @uids := null")
+        self.__db.query("UPDATE primary_infecteds\
+                        SET dt_rem = '{}'\
+                        WHERE DATEDIFF('{}', DATE(dt_rec)) >= 7\
+                        AND ( SELECT @uids := CONCAT_WS(',', inf_id, @uids))".format(str(datetime.now().replace(microsecond=0)), str(datetime.now().date())))
+        self.__db.commit()
+        updated = self.__db.query("SELECT @uids;")
+        updated = self.__db.convertOutputToArray(updated)
+
+        for id in updated:
+            prevInfecteds = self.singleTrace(id)
+            prevInfecteds = tuple(prevInfecteds["histInfecteds"])
+            self.__db.query(
+                "UPDATE users SET inf_cov = 'Healthy' WHERE u_id in {}".format(prevInfecteds))
+            self.__db.commit()
+        print(updated)
 
     def getPrimaryInfecteds(self):
         # from the already recorded
@@ -22,25 +41,17 @@ class Contact():
         infecteesCount = len(primaryInfectees)
 
         if(infecteesCount > 0):
-            if(infecteesCount == 1):
-                primaryInfectees.append(primaryInfectees[0])
-            elif(infecteesCount > 1):
-                for i, tup in enumerate(primaryInfectees):
-                    primaryInfectees[i] = tup[0]
+            primaryInfectees = self.__db.convertOutputToArray(primaryInfectees)
 
             fromUsers = (self.__db.query(
                 "SELECT u_id FROM users WHERE inf_cov = 'Primary Inf' AND dt_rem IS NULL and u_id NOT IN {}".format(tuple(primaryInfectees))))
 
-        fromUsers = (self.__db.query(
-            "SELECT u_id FROM users WHERE inf_cov = 'Primary Inf' AND dt_rem IS NULL "))
+        else:
+            fromUsers = (self.__db.query(
+                "SELECT u_id FROM users WHERE inf_cov = 'Primary Inf' AND dt_rem IS NULL "))
 
-        fromUsersCount = len(fromUsers)
-        if(fromUsersCount == 1):
-            primaryInfectees.append(fromUsers[0])
-        elif(fromUsersCount > 1):
-            for i, tup in enumerate(fromUsers):
-                fromUsers[i] = tup[0]
-            primaryInfectees += fromUsers
+        fromUsers = self.__db.convertOutputToArray(fromUsers)
+        primaryInfectees += fromUsers
 
         self.__primaryInfecteds += primaryInfectees
         return primaryInfectees
@@ -64,17 +75,6 @@ class Contact():
         # print(updated)
         pass
 
-    def updateTracedDB(self):
-        print("hello")
-        self.__db.query("SET @uids := null")
-        self.__db.query("UPDATE primary_infecteds\
-                        SET dt_rem = '{}'\
-                        WHERE DATEDIFF('{}', DATE(dt_rec)) >= 7\
-                        AND ( SELECT @uids := CONCAT_WS(',', inf_id, @uids))".format(str(datetime.now()), str(datetime.now().date())))
-        updated = self.__db.query("SELECT @uids;")
-        updated = self.__db.convertOutputToArray(updated)
-        print(updated)
-
     def getDTEntered(self, uID):
         dtEntered = self.__db.query(
             "SELECT dt_rec FROM customers_health_record  WHERE u_id = {}  ORDER BY dt_rec DESC LIMIT 1".format(uID))
@@ -87,12 +87,7 @@ class Contact():
         cleaned = []
 
         if(len(srcList) > 0):
-            # from tuples to arrays
-            if (len(srcList) > 1):
-                for id in srcList:
-                    cleaned.append(id[0])
-            elif (len(srcList) == 1):
-                cleaned.append(srcList[0])
+            cleaned = self.__db.convertOutputToArray(srcList)
 
             # removes repeated ID
             cleaned = list(dict.fromkeys(cleaned))
@@ -163,6 +158,7 @@ class Contact():
     def __trace(self, ordInfPerson, initalDT, histInfPers, histInfStores, currentDepth=0, maxDepth=3):
         # set the limit for the depth of recursing
         if (currentDepth < maxDepth):
+
             # perform tracing for every key in the dictionary of contacts
             for infector in ordInfPerson:
                 if (initalDT != None):
@@ -189,21 +185,24 @@ class Contact():
                     elif (len(infectorContacts) == 0):
                         ordInfPerson[infector] = None
 
+        else:
+            return ordInfPerson
+
     def singleTrace(self, primaryInf):
         traced = {}
         traced[primaryInf] = None
         dtEnt = self.getDTEntered(primaryInf)
-        histInfecteds = []
+        histInfecteds = [primaryInf]
         hsitInfectedStores = []
         self.__trace(traced, dtEnt, histInfecteds, hsitInfectedStores)
-        return traced
+        return {"traced": traced, "histInfecteds": histInfecteds, "hsitInfectedStores": hsitInfectedStores}
 
     def multipleTrace(self, primaryInfectees):
         traces = []
         for primeInf in primaryInfectees:
             dtEnt = self.getDTEntered(primeInf)
             trace = self.singleTrace(primeInf)
-            traces.append(trace)
+            traces.append(trace["traced"])
 
         return traces
 
@@ -277,5 +276,10 @@ def TestTrace():
     while i <= 100:
         id = i
         ct = Contact(db)
-        print(ct.singleTrace(id, ct.getDTEntered(id)))
+        traced = ct.singleTrace(id)
+        traced = traced["traced"]
+        print(traced)
         i += 1
+
+
+TestTrace()
