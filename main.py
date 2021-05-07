@@ -5,6 +5,7 @@ from accounts import *
 from database import Database, random
 from database_HighControls import HighControlDB
 from user import User
+from contact import Contact
 
 db = HighControlDB()
 
@@ -142,9 +143,6 @@ def customerTest():
     #                 110, "1234", "qwert", "A", "Healthy", "Monica", "Geller", 30, "Female", "s", "b", "c", str(datetime.now()), str(datetime.now())])
 
 
-customerTest()
-
-
 def adminTest():
     admin = Admin(db)
     admin.verifyUser("1111", "qwer")
@@ -154,3 +152,11 @@ def adminTest():
     # admin.updateProofStat(1, 'Approved')
     # admin.newStore(20, 2, "West", "Something", "0900", "@email.com")
     # admin.getStores()
+
+
+def contactTrace():
+    ct = Contact(db)
+    print(ct.getTracedContact())
+
+
+contactTrace()
