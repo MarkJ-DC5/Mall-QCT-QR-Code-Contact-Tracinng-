@@ -53,6 +53,32 @@ class Customer(User):
         else:
             return False
 
+    def uploadProof(self, proof):
+        currentDT = datetime.now().replace(microsecond=0)
+        latestEntryCount = self._db.query("SELECT COUNT(uploaded_by) FROM proof_records WHERE dt_uploaded BETWEEN \"{}\" and \"{}\"".format(
+            str(currentDT - timedelta(hours=1)), str(currentDT)))
+
+        if (latestEntryCount == 0):
+            self._db.insert("proof_records", ["proofLink", "uploaded_by", "dt_uploaded"], [
+                            proof, self._info["uID"], str(datetime.now().replace(microsecond=0))])
+            return True
+        else:
+            print("Already Have an Entry within an Hour Ago")
+            return False
+
+    def updateHealthStatus(self):
+        proof = self._db.query(
+            "SELECT DISTINCT * FROM proof_records WHERE uploaded_by = {}".format(self._info["uID"]))
+        if (len(proof) > 0):
+            if (proof[4] == 'Approved' and proof[5] != None and proof[6] != None):
+                self._info["infCov"] = "Primary Inf"
+                self._db.update("users", ["inf_cov"], [
+                                self._info["infCov"]], "u_id = {}".format(self._info["uID"]))
+            # if (proof[4] == 'Pending'):
+
+        else:
+            print("{} uploaded_by Not Found".format(self._info["uID"]))
+
     def getStoreInfo(self, storeNum):
         tempData = self._db.query(
             "SELECT store_num, floor, wing, name FROM stores WHERE store_num = {}".format(storeNum))
@@ -93,32 +119,6 @@ class Customer(User):
             print("{} u_id Not Found".format(self._info['uID']))
             return False
 
-    def uploadProof(self, proof):
-        currentDT = datetime.now().replace(microsecond=0)
-        latestEntryCount = self._db.query("SELECT COUNT(uploaded_by) FROM proof_records WHERE dt_uploaded BETWEEN \"{}\" and \"{}\"".format(
-            str(currentDT - timedelta(hours=1)), str(currentDT)))
-
-        if (latestEntryCount == 0):
-            self._db.insert("proof_records", ["proofLink", "uploaded_by", "dt_uploaded"], [
-                            proof, self._info["uID"], str(datetime.now().replace(microsecond=0))])
-            return True
-        else:
-            print("Already Have an Entry within an Hour Ago")
-            return False
-
-    def updateHealthStatus(self):
-        proof = self._db.query(
-            "SELECT DISTINCT * FROM proof_records WHERE uploaded_by = {}".format(self._info["uID"]))
-        if (len(proof) > 0):
-            if (proof[4] == 'Approved' and proof[5] != None and proof[6] != None):
-                self._info["infCov"] = "Primary Inf"
-                self._db.update("users", ["inf_cov"], [
-                                self._info["infCov"]], "u_id = {}".format(self._info["uID"]))
-            # if (proof[4] == 'Pending'):
-
-        else:
-            print("{} uploaded_by Not Found".format(self._info["uID"]))
-
 
 class Admin(User):
     def __init__(self, database, qrCodePath="QRcodes/"):
@@ -126,6 +126,45 @@ class Admin(User):
         User.__init__(self, database)
         super().__init__(database)  # inherits all methods and properties
         self.__qrCodePath = qrCodePath
+
+    def generateQRCode(self, storeInfo):
+        try:
+            id_qrCode = qrcode.make(storeInfo["sID"])
+            qrName = str(storeInfo["sID"]) + "_" + \
+                str(storeInfo["sNum"]) + "_" + storeInfo["name"] + ".jpg"
+            id_qrCode.save(self.__qrCodePath + qrName)
+            return True
+        except Exception as e:
+            print(e)
+            return False
+
+    def newStore(self, p_storeNum, p_floor, p_wing, p_name, p_cNum, p_email):
+        existingStore = self._db.query(
+            "SELECT COUNT(store_num) FROM stores WHERE store_num = {} AND dt_rem IS NULL".format(p_storeNum))
+        existingStore = existingStore[0]
+        if (existingStore == 0):
+            self._db.insert("stores", ["store_num", "floor", "wing", "name", "c_num", "email", "dt_add"], [
+                            p_storeNum, p_floor, p_wing, p_name, p_cNum, p_email, str(datetime.now().date())])
+        else:
+            print("{} store_num Already Exist".format(p_storeNum))
+
+    def getStores(self):
+        tempStores = self._db.query(
+            "Select * FROM stores WHERE dt_rem IS NULL")
+        stores = []
+        for tStore in tempStores:
+            store = {}
+            store["sID"] = tStore[0]
+            store["store_num"] = tStore[1]
+            store["floor"] = tStore[2]
+            store["wing"] = tStore[3]
+            store["name"] = tStore[4]
+            store["cNum"] = tStore[5]
+            store["email"] = tStore[6]
+            store["dtAdd"] = tStore[7]
+            store["dtRem"] = tStore[8]
+            stores.append(store)
+        return stores
 
     def getStoreInfo(self, storeNum):
         tempData = self._db.query(
@@ -147,16 +186,34 @@ class Admin(User):
             print("{} store_num Not Found".format(storeNum))
             return False
 
-    def generateQRCode(self, storeInfo):
+    def updateStoreInfo(self, sID, cols, values):
         try:
-            id_qrCode = qrcode.make(storeInfo["sID"])
-            qrName = str(storeInfo["sID"]) + "_" + \
-                str(storeInfo["sNum"]) + "_" + storeInfo["name"] + ".jpg"
-            id_qrCode.save(self.__qrCodePath + qrName)
-            return True
-        except Exception as e:
-            print(e)
+            toRemove = cols.index("s_id")
+            del cols[toRemove]
+            del values[toRemove]
+        except ValueError:
+            pass
+
+        numOfExisting = self._db.query(
+            "SELECT COUNT(c_num) FROM stores WHERE store_num = {} AND dt_rem != None".format(values[cols.index("c_num")]))
+        numOfExisting = numOfExisting[0]
+
+        if (numOfExisting == 0):
+            self._db.update("stores", cols, values,
+                            "s_id = {}".format(sID))
+        elif(numOfExisting > 0):
+            print('Store Number Already Exist')
             return False
+
+    def deleteStore(self, id):
+        currentDTRem = self._db.query(
+            "SELECT dt_rem FROM stores WHERE s_id = {}".format(id))
+
+        if (currentDTRem != None):
+            self._db.update('stores', ["dt_rem"], [
+                str(datetime.now().date())], "s_id = {}".format(id))
+        else:
+            print("Already Deleted on {}".format(currentDTRem))
 
     def getPendingProof(self, intances=5):
         pending = []
@@ -195,59 +252,3 @@ class Admin(User):
             return True
         else:
             return False
-
-    def deleteStore(self, id):
-        currentDTRem = self._db.query(
-            "SELECT dt_rem FROM stores WHERE s_id = {}".format(id))
-
-        if (currentDTRem != None):
-            self._db.update('stores', ["dt_rem"], [
-                str(datetime.now().date())], "s_id = {}".format(id))
-        else:
-            print("Already Deleted on {}".format(currentDTRem))
-
-    def newStore(self, p_storeNum, p_floor, p_wing, p_name, p_cNum, p_email):
-        existingStore = self._db.query(
-            "SELECT COUNT(store_num) FROM stores WHERE store_num = {} AND dt_rem IS NULL".format(p_storeNum))
-        existingStore = existingStore[0]
-        if (existingStore == 0):
-            self._db.insert("stores", ["store_num", "floor", "wing", "name", "c_num", "email", "dt_add"], [
-                            p_storeNum, p_floor, p_wing, p_name, p_cNum, p_email, str(datetime.now().date())])
-        else:
-            print("{} store_num Already Exist".format(p_storeNum))
-        # def updateStoreInfo(self, sID, cols, values):
-        #     try:
-        #         toRemove = cols.index("s_id")
-        #         del cols[toRemove]
-        #         del values[toRemove]
-        #     except ValueError:
-        #         pass
-
-        #     numOfExisting = self._db.query(
-        #         "SELECT COUNT(c_num) FROM stores WHERE store_num = {} AND dt_rem != None".format(values[cols.index("c_num")]))
-        #     numOfExisting = numOfExisting[0]
-
-        #     if (numOfExisting == 0):
-        #         self._db.update("stores", cols, values,
-        #                         "s_id = {}".format(sID))
-        #     elif(numOfExisting > 0):
-        #         print('Store Number Already Exist')
-        #         return False
-
-    def getStores(self):
-        tempStores = self._db.query(
-            "Select * FROM stores WHERE dt_rem IS NULL")
-        stores = []
-        for tStore in tempStores:
-            store = {}
-            store["sID"] = tStore[0]
-            store["store_num"] = tStore[1]
-            store["floor"] = tStore[2]
-            store["wing"] = tStore[3]
-            store["name"] = tStore[4]
-            store["cNum"] = tStore[5]
-            store["email"] = tStore[6]
-            store["dtAdd"] = tStore[7]
-            store["dtRem"] = tStore[8]
-            stores.append(store)
-        return stores

@@ -157,8 +157,11 @@ def adminTest():
 def contactTrace():
     # db.createPrimeInfected()
     ct = Contact(db)
-    print(ct.getTracedContact())
+    print((ct.singleTrace(27))["orderedHistInf"])
+    # ct.startTracing()
+    # print(ct.getTracedContact())
     # ct.updateTracedDB()
+    # print(ct.sortByLevel())
 
 
 contactTrace()

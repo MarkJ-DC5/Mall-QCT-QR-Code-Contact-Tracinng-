@@ -1,3 +1,4 @@
+from os import O_APPEND
 from database_HighControls import HighControlDB
 from database import Database, random
 from datetime import datetime, timedelta
@@ -9,29 +10,29 @@ class Contact():
         self.__primaryInfecteds = []
         self.__Traces = []
 
-        # start tracing on construct
-        # self.updateTracedDB()
-        # self.__primaryInfecteds = self.getPrimaryInfecteds()
-        # self.__Traces = self.multipleTrace(self.__primaryInfecteds)
-        # self.uploadPrimeInfs()
+    def startTracing(self):
+        self.updateTracedDB()
+        self.__primaryInfecteds = self.getPrimaryInfecteds()
+        self.__Traces = self.multipleTrace(self.__primaryInfecteds)
+        self.uploadPrimeInfs()
 
     def updateTracedDB(self):
         self.__db.query("SET @uids := null")
         self.__db.query("UPDATE primary_infecteds\
                         SET dt_rem = '{}'\
-                        WHERE DATEDIFF('{}', DATE(dt_rec)) >= 7\
+                        WHERE DATEDIFF('{}', DATE(dt_rec)) >= 7 AND dt_rem IS NULL\
                         AND ( SELECT @uids := CONCAT_WS(',', inf_id, @uids))".format(str(datetime.now().replace(microsecond=0)), str(datetime.now().date())))
         self.__db.commit()
         updated = self.__db.query("SELECT @uids;")
         updated = self.__db.convertOutputToArray(updated)
 
         for id in updated:
-            prevInfecteds = self.singleTrace(id)
-            prevInfecteds = tuple(prevInfecteds["histInfecteds"])
-            self.__db.query(
-                "UPDATE users SET inf_cov = 'Healthy' WHERE u_id in {}".format(prevInfecteds))
-            self.__db.commit()
-        print(updated)
+            if (id != None):
+                prevInfecteds = self.singleTrace(id)
+                prevInfecteds = tuple(prevInfecteds["histInfecteds"])
+                self.__db.query(
+                    "UPDATE users SET inf_cov = 'Healthy' WHERE u_id in {}".format(prevInfecteds))
+        self.__db.commit()
 
     def getPrimaryInfecteds(self):
         # from the already recorded
@@ -64,16 +65,6 @@ class Contact():
             if (exist == 0):
                 self.__db.insert("primary_infecteds", ["inf_id", "dt_rec"], [
                                  id, str(datetime.now())])
-
-    def updateHealthStatus(self):
-        # updated = self.__db.query("SET @uids := null;\
-        #                 UPDATE primary_infecteds\
-        #                 SET dt_rem = '{}'\
-        #                 WHERE DATEDIFF('{}', DATE(dt_rec)) >= 7\
-        #                 AND ( SELECT @uids := CONCAT_WS(',', inf_id, @uids));\
-        #                 SELECT @uids;".format(str(datetime.now()), str(datetime.now().date())))
-        # print(updated)
-        pass
 
     def getDTEntered(self, uID):
         dtEntered = self.__db.query(
@@ -155,13 +146,28 @@ class Contact():
         # returns the list of infected people and time the infectore entered the shop
         return {"infecteds": infPersons, "dtEnt": dtEnt}
 
-    def __trace(self, ordInfPerson, initalDT, histInfPers, histInfStores, currentDepth=0, maxDepth=3):
+    def __trace(self, ordInfPerson, initalDT, histInfPers, histInfStores, orderedHistInf, currentDepth=0, maxDepth=3):
         # set the limit for the depth of recursing
-        if (currentDepth < maxDepth):
-
+        if (currentDepth <= maxDepth):
             # perform tracing for every key in the dictionary of contacts
             for infector in ordInfPerson:
-                if (initalDT != None):
+
+                # update Health Status
+                healthStatus = ""
+                if (currentDepth == 0):
+                    healthStatus = "Primary Inf"
+                elif (currentDepth > 0):
+                    if (currentDepth == 1):
+                        healthStatus = "First Contact"
+                    elif (currentDepth == 2):
+                        healthStatus = "Second Contact"
+                    elif (currentDepth == 3):
+                        healthStatus = "Third Contact"
+                    orderedHistInf[currentDepth - 1].append(infector)
+                self.__db.query("UPDATE users SET inf_cov = '{}' WHERE u_id = {}".format(
+                    healthStatus, infector))
+
+                if (currentDepth <= maxDepth and initalDT != None):
                     stores = self.__getInfStores(
                         infector, initalDT, histInfStores)
 
@@ -178,13 +184,13 @@ class Contact():
                     # the dictority for the contacted people is then set as the value for of the infector key
                     if (len(infectorContacts) > 0):
                         ordInfPerson[infector] = infectorContacts
-                        currentDepth += 1
+                        nextDepth = currentDepth + 1
                         self.__trace(infectorContacts,
-                                     infectees["dtEnt"], histInfPers, histInfStores, currentDepth)
+                                     infectees["dtEnt"], histInfPers, histInfStores, orderedHistInf, nextDepth)
 
                     elif (len(infectorContacts) == 0):
                         ordInfPerson[infector] = None
-
+            self.__db.commit()
         else:
             return ordInfPerson
 
@@ -194,8 +200,10 @@ class Contact():
         dtEnt = self.getDTEntered(primaryInf)
         histInfecteds = [primaryInf]
         hsitInfectedStores = []
-        self.__trace(traced, dtEnt, histInfecteds, hsitInfectedStores)
-        return {"traced": traced, "histInfecteds": histInfecteds, "hsitInfectedStores": hsitInfectedStores}
+        orderedHistInf = [[], [], []]
+        self.__trace(traced, dtEnt, histInfecteds,
+                     hsitInfectedStores, orderedHistInf)
+        return {"traced": traced, "orderedHistInf": orderedHistInf, "histInfecteds": histInfecteds, "hsitInfectedStores": hsitInfectedStores}
 
     def multipleTrace(self, primaryInfectees):
         traces = []
@@ -206,8 +214,31 @@ class Contact():
 
         return traces
 
-    def updateHealthStatus():
-        pass
+    def sortByLevel(self, output=0):
+        output = {27: {1: {33: {74: None, 66: None}, 92: None, 28: {14: None, 39: None, 46: None,
+                                                                    2: None}, 16: None, 99: {70: {30: None, 60: None}}, 82: {68: None, 64: None}}}}
+        primaryInf = None
+        fContact = []
+        sContact = []
+        tContact = []
+
+        if (output != None):
+            for p in output:
+                primaryInf = p
+
+                if (output[p] != None):
+                    for f in output[p]:
+                        fContact.append(f)
+
+                        if (output[p][f] != None):
+                            for s in output[p][f]:
+                                sContact.append(s)
+
+                                if (output[p][f][s] != None):
+                                    for t in output[p][f][s]:
+                                        tContact.append(t)
+
+        return {"pInf": primaryInf, "fContact": fContact, "sContact": sContact, "tContact": tContact}
 
     def getTracedContact(self):
         return self.__Traces
@@ -271,7 +302,6 @@ def TestTrace():
     # timedef inversely proportional
 
     # test every possible primaryInfectedId
-
     i = 1
     while i <= 100:
         id = i
@@ -280,6 +310,3 @@ def TestTrace():
         traced = traced["traced"]
         print(traced)
         i += 1
-
-
-TestTrace()
