@@ -155,8 +155,10 @@ def adminTest():
 
 
 def contactTrace():
+    # db.createPrimeInfected()
     ct = Contact(db)
-    print(ct.getTracedContact())
+    ct.updateTracedDB()
+    # print(ct.getTracedContact())
 
 
 contactTrace()

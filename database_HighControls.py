@@ -100,9 +100,20 @@ class HighControlDB(Database):
         else:
             raise Exception("Not Connected to Database")
 
+    def createPrimeInfected(self):
+        if (self._isConnected):
+            self.query("DROP TABLE IF EXISTS primary_infecteds")
+            self.query("CREATE TABLE primary_infecteds (\
+                inf_id int PRIMARY KEY, FOREIGN KEY(inf_id) REFERENCES Users(u_id),\
+                dt_rec datetime NOT NULL,\
+                dt_rem date NULL DEFAULT NULL)")
+            print("primary_infecteds Table Created")
+            return True
+
     def resetDatabase(self):
         if (self._isConnected):
             self.query("DROP TABLE IF EXISTS Customers_Health_Record")
+            self.query("DROP TABLE IF EXISTS primary_infecteds")
             self.query("DROP TABLE IF EXISTS Proof_Records")
             self.query("DROP TABLE IF EXISTS Stores")
             # self.query("DROP TABLE IF EXISTS Heath_Declaration_Record")
@@ -111,6 +122,7 @@ class HighControlDB(Database):
             self.createUsersTable()
             self.createStoresTable()
             self.createCustHlthRec()
+            self.createPrimeInfected()
             self.createProofRecords()
             # self.createHlthDecRec()
 

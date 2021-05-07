@@ -98,7 +98,7 @@ class Database:
 
     def query(self, command):
         if (self._isConnected):
-            # print("Query:", command)
+            print("Query:", command)
             self.dbCursor.execute(command)
             data = self.dbCursor.fetchall()
             if (len(data) == 1):
@@ -144,3 +144,11 @@ class Database:
             return True
         else:
             raise Exception("Not Connected to Database")
+
+    def convertOutputToArray(self, output):
+        outputLen = len(output)
+        if(outputLen == 1):
+            return list(output[0])
+        elif(outputLen > 1):
+            for i, tup in enumerate(output):
+                output[i] = tup[0]

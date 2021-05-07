@@ -10,35 +10,70 @@ class Contact():
         self.__Traces = []
 
         # start tracing on construct
-        self.__primaryInfecteds = self.getPrimaryInfecteds()
-        self.__Traces = self.multipleTrace(self.__primaryInfecteds)
-
-        # # self.__primeInfected = infID
-        # self.__primeInfected = None
-        # self.__db = database
-        # self.__maxDepth = depth
-        # # self.__dateEntered = self.__setDateEntered()
-        # self.__dateEntered = None
-        # self.__unordInfPerson = [self.__primeInfected]
-        # self.__unordInfStores = []
-
-        # self.__ordInfPerson = {}    # {'55': {24: None}}
-        # self.__ordInfPerson[self.__primeInfected] = None
-        # # self.__trace(self.__ordInfPerson, self.__dateEntered)
+        # self.__primaryInfecteds = self.getPrimaryInfecteds()
+        # self.__Traces = self.multipleTrace(self.__primaryInfecteds)
+        # self.uploadPrimeInfs()
 
     def getPrimaryInfecteds(self):
+        # from the already recorded
         primaryInfectees = self.__db.query(
-            "SELECT u_id FROM users WHERE inf_cov = 'Primary Inf' and dt_rem IS NULL")
+            "SELECT inf_id FROM primary_infecteds WHERE dt_rem IS NULL")
 
         infecteesCount = len(primaryInfectees)
-        if(infecteesCount == 1):
-            self.__primaryInfecteds.append(primaryInfectees[0])
-        elif(infecteesCount > 1):
-            for i, tup in enumerate(primaryInfectees):
-                primaryInfectees[i] = tup[0]
-            self.__primaryInfecteds.append(primaryInfectees)
 
+        if(infecteesCount > 0):
+            if(infecteesCount == 1):
+                primaryInfectees.append(primaryInfectees[0])
+            elif(infecteesCount > 1):
+                for i, tup in enumerate(primaryInfectees):
+                    primaryInfectees[i] = tup[0]
+
+            fromUsers = (self.__db.query(
+                "SELECT u_id FROM users WHERE inf_cov = 'Primary Inf' AND dt_rem IS NULL and u_id NOT IN {}".format(tuple(primaryInfectees))))
+
+        fromUsers = (self.__db.query(
+            "SELECT u_id FROM users WHERE inf_cov = 'Primary Inf' AND dt_rem IS NULL "))
+
+        fromUsersCount = len(fromUsers)
+        if(fromUsersCount == 1):
+            primaryInfectees.append(fromUsers[0])
+        elif(fromUsersCount > 1):
+            for i, tup in enumerate(fromUsers):
+                fromUsers[i] = tup[0]
+            primaryInfectees += fromUsers
+
+        self.__primaryInfecteds += primaryInfectees
         return primaryInfectees
+
+    def uploadPrimeInfs(self):
+        for id in self.__primaryInfecteds:
+            exist = self.__db.query(
+                "SELECT COUNT(*) FROM primary_infecteds WHERE inf_id = {} AND dt_rem IS NULL".format(id))
+            exist = exist[0]
+            if (exist == 0):
+                self.__db.insert("primary_infecteds", ["inf_id", "dt_rec"], [
+                                 id, str(datetime.now())])
+
+    def updateHealthStatus(self):
+        # updated = self.__db.query("SET @uids := null;\
+        #                 UPDATE primary_infecteds\
+        #                 SET dt_rem = '{}'\
+        #                 WHERE DATEDIFF('{}', DATE(dt_rec)) >= 7\
+        #                 AND ( SELECT @uids := CONCAT_WS(',', inf_id, @uids));\
+        #                 SELECT @uids;".format(str(datetime.now()), str(datetime.now().date())))
+        # print(updated)
+        pass
+
+    def updateTracedDB(self):
+        print("hello")
+        self.__db.query("SET @uids := null")
+        self.__db.query("UPDATE primary_infecteds\
+                        SET dt_rem = '{}'\
+                        WHERE DATEDIFF('{}', DATE(dt_rec)) >= 7\
+                        AND ( SELECT @uids := CONCAT_WS(',', inf_id, @uids))".format(str(datetime.now()), str(datetime.now().date())))
+        updated = self.__db.query("SELECT @uids;")
+        updated = self.__db.convertOutputToArray(updated)
+        print(updated)
 
     def getDTEntered(self, uID):
         dtEntered = self.__db.query(
@@ -172,14 +207,15 @@ class Contact():
 
         return traces
 
+    def updateHealthStatus():
+        pass
+
     def getTracedContact(self):
         return self.__Traces
 
 
-db = HighControlDB("f", fileName="dbTestCred.txt")
-
-
 def resetCustHlthRec():
+    db = HighControlDB("f", fileName="dbTestCred.txt")
     db.query("DROP TABLE IF EXISTS Customers_Health_Record")
     db.query("CREATE TABLE Customers_Health_Record (\
         u_id int,\
@@ -189,6 +225,7 @@ def resetCustHlthRec():
 
 
 def fillCCustHlthRec(intances=100, people=100, stores=15, timeDif=24):
+    db = HighControlDB("f", fileName="dbTestCred.txt")
     currentDT = datetime.now().replace(microsecond=0)
     # currentTimeInc = datetime.now().replace(microsecond=0) + timedelta(hours=1)
     print("Current Time: ", currentDT)
@@ -225,18 +262,20 @@ def fillCCustHlthRec(intances=100, people=100, stores=15, timeDif=24):
         i += 1
 
 
-# resetCustHlthRec()
-# fillCCustHlthRec(intances=2500, people=100, timeDif=72)
-# instances directly
-# people inversely
-# timedef inversely
+def TestTrace():
+    db = HighControlDB("f", fileName="dbTestCred.txt")
+    # uncomment if customer_health_records need to be resetted and filled
+    # resetCustHlthRec()
+    # fillCCustHlthRec(intances=2500, people=100, timeDif=72)
+    # instances directly proportional to trace contact outputs
+    # people inversely proportional
+    # timedef inversely proportional
 
-# i = 1
-# while i <= 100:
-#     id = i
-#     ct = Contact(db)
-#     print(ct.singleTrace(id, ct.getDTEntered(id)))
-#     i += 1
+    # test every possible primaryInfectedId
 
-# ct = Contact(db)
-# print(ct.getTracedContact())
+    i = 1
+    while i <= 100:
+        id = i
+        ct = Contact(db)
+        print(ct.singleTrace(id, ct.getDTEntered(id)))
+        i += 1
