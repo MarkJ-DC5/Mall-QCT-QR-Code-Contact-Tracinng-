@@ -24,7 +24,6 @@ class Contact():
                         AND ( SELECT @uids := CONCAT_WS(',', inf_id, @uids))".format(str(datetime.now().replace(microsecond=0)), str(datetime.now().date())))
         self.__db.commit()
         updated = self.__db.query("SELECT @uids;")
-        updated = self.__db.convertOutputToArray(updated)
 
         for id in updated:
             if (id != None):
@@ -42,7 +41,6 @@ class Contact():
         infecteesCount = len(primaryInfectees)
 
         if(infecteesCount > 0):
-            primaryInfectees = self.__db.convertOutputToArray(primaryInfectees)
 
             fromUsers = (self.__db.query(
                 "SELECT u_id FROM users WHERE inf_cov = 'Primary Inf' AND dt_rem IS NULL and u_id NOT IN {}".format(tuple(primaryInfectees))))
@@ -51,7 +49,6 @@ class Contact():
             fromUsers = (self.__db.query(
                 "SELECT u_id FROM users WHERE inf_cov = 'Primary Inf' AND dt_rem IS NULL "))
 
-        fromUsers = self.__db.convertOutputToArray(fromUsers)
         primaryInfectees += fromUsers
 
         self.__primaryInfecteds += primaryInfectees
@@ -69,22 +66,20 @@ class Contact():
     def getDTEntered(self, uID):
         dtEntered = self.__db.query(
             "SELECT dt_rec FROM customers_health_record  WHERE u_id = {}  ORDER BY dt_rec DESC LIMIT 1".format(uID))
-        return dtEntered
+        return dtEntered[0]
 
     def __cleanOutputList(self, srcList, refList):
         cleaned = []
+        srcLen = len(srcList)
 
-        if(len(srcList) > 0):
-            cleaned = self.__db.convertOutputToArray(srcList)
+        # removes repeated ID
+        cleaned = list(dict.fromkeys(srcList))
 
-            # removes repeated ID
-            cleaned = list(dict.fromkeys(cleaned))
-
-            # removes already recorded ID
-            if (len(cleaned) > 0):
-                for id in cleaned:
-                    if (id in refList):
-                        del cleaned[cleaned.index(id)]
+        # removes already recorded ID
+        if (len(cleaned) > 0):
+            for id in cleaned:
+                if (id in refList):
+                    del cleaned[cleaned.index(id)]
 
         return cleaned
 
@@ -113,7 +108,7 @@ class Contact():
         infPersons = []
 
         if(len(dtEnt) == 1):
-
+            dtEnt = dtEnt[0]
             # get the list of infected person
             infPersons = self.__db.query(
                 "SELECT u_id FROM customers_health_record WHERE s_id = {} AND dt_rec BETWEEN \"{}\" AND \"{}\"".format(infStore, str(dtEnt), str(self.__addOneHr(dtEnt))))
@@ -124,7 +119,7 @@ class Contact():
 
         elif (len(dtEnt) > 1):
             for dt in dtEnt:
-                dt = dt[0]
+
                 # get the list of infected person
                 tempInfPersons = self.__db.query(
                     "SELECT u_id FROM customers_health_record WHERE s_id = {} AND dt_rec BETWEEN \"{}\" AND \"{}\"".format(infStore, str(dt), str(self.__addOneHr(dt))))
@@ -134,7 +129,7 @@ class Contact():
                     tempInfPersons, histInfPers)
 
                 infPersons.extend(tempInfPersons)
-            dtEnt = dtEnt[0][0]
+            dtEnt = dtEnt[0]
 
         # updte history of recorded
         histInfPers += infPersons
@@ -177,7 +172,7 @@ class Contact():
                         for infected in infectees["infecteds"]:
                             infectorContacts[infected] = None
 
-                    # the dictority for the contacted people is then set as the value for of the infector key
+                    # the dictionary for the contacted people is then set as the value for of the infector key
                     if (len(infectorContacts) > 0):
                         ordInfPerson[infector] = infectorContacts
                         nextDepth = currentDepth + 1
@@ -202,13 +197,15 @@ class Contact():
         return {"traced": traced, "orderedHistInf": orderedHistInf, "histInfecteds": histInfecteds, "hsitInfectedStores": hsitInfectedStores}
 
     def multipleTrace(self, primaryInfectees):
-        traces = []
+        byContactTrace = []
+        byDepthTrace = {}
         for primeInf in primaryInfectees:
             dtEnt = self.getDTEntered(primeInf)
             trace = self.singleTrace(primeInf)
-            traces.append(trace["traced"])
+            byContactTrace.append(trace["traced"])
+            byDepthTrace[primeInf] = trace["orderedHistInf"]
 
-        return traces
+        return {"byContactTrace": byContactTrace, "byDepthTrace": byDepthTrace}
 
     def sortByLevel(self, output=0):
         output = {27: {1: {33: {74: None, 66: None}, 92: None, 28: {14: None, 39: None, 46: None,
@@ -289,7 +286,7 @@ def fillCCustHlthRec(intances=100, people=100, stores=15, timeDif=24):
 
 
 def TestTrace():
-    db = HighControlDB("f", fileName="dbTestCred.txt")
+    db = HighControlDB()
     # uncomment if customer_health_records need to be resetted and filled
     # resetCustHlthRec()
     # fillCCustHlthRec(intances=2500, people=100, timeDif=72)

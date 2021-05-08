@@ -98,7 +98,7 @@ class Database:
 
     def query(self, command):
         if (self._isConnected):
-            print("Query:", command)
+            # print("Query:", command)
             self.dbCursor.execute(command)
             data = self.dbCursor.fetchall()
 
@@ -107,7 +107,7 @@ class Database:
                 if(len(data) == 1):
                     # [(X, )]
                     if(len(data[0]) == 1 and type(data[0]) == tuple):
-                        data = data[0][0]  # transform to single int
+                        data[0] = data[0][0]
 
                     # [(X, Y, Z)]
                     elif(len(data[0]) > 1):
