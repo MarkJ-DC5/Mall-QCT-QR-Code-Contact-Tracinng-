@@ -101,10 +101,25 @@ class Database:
             print("Query:", command)
             self.dbCursor.execute(command)
             data = self.dbCursor.fetchall()
-            if (len(data) == 1):
-                return data[0]
-            else:
-                return data
+
+            if(data != None):
+
+                if(len(data) == 1):
+                    # [(X, )]
+                    if(len(data[0]) == 1 and type(data[0]) == tuple):
+                        data = data[0][0]  # transform to single int
+
+                    # [(X, Y, Z)]
+                    elif(len(data[0]) > 1):
+                        data = list(data[0])  # transform into a list
+
+                # [(X, ), (Y, ), (Z, ) ]
+                elif(len(data) > 1 and len(data[0]) == 1 and type(data[0]) == tuple):
+                    for i, value in enumerate(data):
+                        data[i] = value[0]
+
+            return data
+
         else:
             raise Exception("Not Connected to Database")
 
@@ -144,17 +159,3 @@ class Database:
             return True
         else:
             raise Exception("Not Connected to Database")
-
-    def convertOutputToArray(self, output):
-        outputLen = len(output)
-        if(outputLen == 1):
-            if(type(output) == list):
-                return list(output[0])
-            elif(type(output) == tuple):
-                return list(output)
-        elif(outputLen > 1):
-            for i, tup in enumerate(output):
-                output[i] = tup[0]
-            return output
-        else:
-            return []

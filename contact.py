@@ -69,10 +69,7 @@ class Contact():
     def getDTEntered(self, uID):
         dtEntered = self.__db.query(
             "SELECT dt_rec FROM customers_health_record  WHERE u_id = {}  ORDER BY dt_rec DESC LIMIT 1".format(uID))
-
-        if(len(dtEntered) > 0):
-            dtEntered = dtEntered[0]
-            return dtEntered
+        return dtEntered
 
     def __cleanOutputList(self, srcList, refList):
         cleaned = []
@@ -116,7 +113,6 @@ class Contact():
         infPersons = []
 
         if(len(dtEnt) == 1):
-            dtEnt = dtEnt[0]
 
             # get the list of infected person
             infPersons = self.__db.query(
