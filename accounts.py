@@ -48,31 +48,6 @@ class Customer(User):
         else:
             return False
 
-    def getInfo(self):
-        '''
-            Get's the user info
-            Returns:
-                Dictionary containing a formatted and compact user information
-                    {'name': None, 'infCov': None,'age': None, 'gender': None, 'address': None}   
-                False - not verified or no info is loaded
-        '''
-
-        info = {'name': None, 'infCov': None,
-                'age': None, 'gender': None, 'address': None}
-
-        if (self._isVerified):
-            info['name'] = self._info['fName'] + " " + self._info['lName']
-            info['infCov'] = self._info['infCov']
-            info['age'] = self._info['age']
-            info['gender'] = self._info['gender']
-            info['address'] = self._info['street'] + ", " + \
-                self._info['barangay'] + ", " + \
-                self._info['street'] + ", " + self._info['city']
-
-            return info
-        else:
-            return False
-
     def uploadProof(self, proof):
         '''
             insert the link to the proof to the proof_of_records table 
@@ -88,6 +63,7 @@ class Customer(User):
             currentDT = datetime.now().replace(microsecond=0)
             latestEntryCount = self._db.query("SELECT COUNT(uploaded_by) FROM proof_records WHERE dt_uploaded BETWEEN \"{}\" and \"{}\"".format(
                 str(currentDT - timedelta(hours=1)), str(currentDT)))
+            latestEntryCount = latestEntryCount[0]
 
             if (latestEntryCount == 0):
                 self._db.insert("proof_records", ["proofLink", "uploaded_by", "dt_uploaded"], [
