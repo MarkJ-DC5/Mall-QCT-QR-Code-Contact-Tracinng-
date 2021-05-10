@@ -12,8 +12,8 @@ class ScreenCustomer(Screen):
         self.Home(self._customer)
         self.customerMenu("Home")
 
-    def customerHistory(self, detailedRow=-1):
-        history = self._customer.getHistory()
+    def customerHistory(self, detailedRow=-1, rows=5):
+        history = self._customer.getHistory(rows)
 
         system('cls')
         print("\n===================================================================\n")
@@ -39,6 +39,7 @@ class ScreenCustomer(Screen):
             print("")
             print("Options: ")
             print("\t s: Show store")
+            print("\t sm: Show More")
             print("\t m: Menu")
             print("\t e: Exit")
             optToShow = input("Opt To Show: ")
@@ -47,13 +48,16 @@ class ScreenCustomer(Screen):
             if(optToShow == "s"):
                 toView = int(
                     input("Enter row of corresponding \ndate to view visited store: "))
-                self.customerHistory(toView)
+                self.customerHistory(toView, rows)
+            elif(optToShow == "sm"):
+                Newrows = rows + 5
+                self.customerHistory(rows=Newrows)
             elif(optToShow == "m"):
-                self.stomerMenu("History")
+                self.customerMenu("History")
             elif(optToShow == "e"):
                 return 0
             else:
-                self.customerHistory()
+                self.customerHistory(rows)
         else:
             print("\nYou haven't entered the mall with the app\n")
             self.customerMenu("History")

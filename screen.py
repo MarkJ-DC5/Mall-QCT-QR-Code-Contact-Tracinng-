@@ -294,6 +294,10 @@ class Screen():
             print("====== QR Code Mall Contact Tracing =====", '\n')
             cNum = input("Contact Number (09xxxxxxxxx, 11chars): ")
             passwd = input("Password (8chars): ")
+            # cNum = "09000000001"
+            # passwd = "password"
+            # cNum = "09110001111"
+            # passwd = "something"
             print('')
 
             isValidCnum = self.isValidCnum(cNum)
@@ -303,8 +307,9 @@ class Screen():
                 if(self.__user.verifyUser(cNum, passwd)):
                     return self.__user.getUserType()
                 else:
+                    attempts -= 1
                     print("No Credential Matched: {} attemps left".format(
-                        attempts - 1))
+                        attempts))
                     print("r: Retry")
                     print("c: Create New Account")
                     print("e: Exit")
@@ -322,7 +327,6 @@ class Screen():
                     else:
                         print('Invalid Input!')
                         system('pause')
-                    attempts -= 1
                 print('\n')
 
                 print("To Many Attemps\n")

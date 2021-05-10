@@ -45,6 +45,7 @@ class Customer(User):
                 recorded = self._db.query(
                     "SELECT COUNT(*) FROM customers_health_record WHERE u_ID = {} AND s_ID = {} AND dt_rec BETWEEN \"{}\" AND \"{}\"".format(
                         self._info["uID"], store[0], str(currentDT - timedelta(minutes=10)), str(currentDT)))
+                recorded = recorded[0]
 
                 if (recorded == 0):
                     self._db.insert("customers_health_record",
@@ -72,8 +73,8 @@ class Customer(User):
 
         if (self._isVerified):
             currentDT = datetime.now().replace(microsecond=0)
-            latestEntryCount = self._db.query("SELECT COUNT(uploaded_by) FROM proof_records WHERE dt_uploaded BETWEEN \"{}\" and \"{}\"".format(
-                str(currentDT - timedelta(hours=1)), str(currentDT)))
+            latestEntryCount = self._db.query("SELECT COUNT(uploaded_by) FROM proof_records WHERE p_id = {} and dt_uploaded BETWEEN \"{}\" and \"{}\"".format(self._info["uID"],
+                                                                                                                                                              str(currentDT - timedelta(hours=1)), str(currentDT)))
             latestEntryCount = latestEntryCount[0]
 
             if (latestEntryCount == 0):
@@ -148,7 +149,7 @@ class Customer(User):
 
         history = []
         tempDates = self._db.query(
-            "SELECT DISTINCT DATE(dt_rec) FROM customers_health_record WHERE u_id = {} LIMIT {}".format(self._info['uID'], instances))
+            "SELECT DISTINCT DATE(dt_rec) FROM customers_health_record WHERE u_id = {} ORDER BY dt_rec DESC LIMIT {}".format(self._info['uID'], instances))
 
         if (len(tempDates) > 0):
             for d in tempDates:
@@ -159,11 +160,18 @@ class Customer(User):
                 tempStores = self._db.query(
                     "SELECT s_id, MAX(TIME(dt_rec)) FROM customers_health_record WHERE DATE(dt_rec) = '{}' AND u_id = {} GROUP BY s_id".format(d, self._info['uID']))
 
-                if (tempStores != None):
-                    for store in tempStores:
-                        storeInfo = self.getStoreInfo(store[0])
-                        storeInfo["timeEnt"] = str(store[1])
-                        log['stores'].append(storeInfo)
+                if (type(tempStores[0]) == int):
+                    storeInfo = self.getStoreInfo(tempStores[0])
+                    storeInfo["timeEnt"] = str(tempStores[1])
+                    log['stores'].append(storeInfo)
+
+                else:
+                    if (tempStores != None):
+                        for store in tempStores:
+                            storeInfo = self.getStoreInfo(store[0])
+                            storeInfo["timeEnt"] = str(store[1])
+                            log['stores'].append(storeInfo)
+
                 history.append(log)
             return history
         else:
@@ -356,7 +364,7 @@ class Admin(User):
         # [{},{},{}]
         return pending
 
-    def updateProofStat(self, pID, status):
+    def updateProofStat(self, uID, status):
         '''
             Change the status of proof of request
             Args:
@@ -369,9 +377,9 @@ class Admin(User):
 
         if (status == 'Approved' or status == 'Denied' or status == 'Pending'):
             self._db.update("proof_records", ["status", "stat_changed_by", "dt_stat_changed"], [
-                            status, self._info["uID"], str(datetime.now().replace(microsecond=0))], "p_id = {}".format(pID))
+                            status, self._info["uID"], str(datetime.now().replace(microsecond=0))], "uploaded_by = {}".format(uID))
             self._db.update("users", ["inf_cov"], [
-                            "Primary Inf"], "u_id = {}".format(pID))
+                            "Primary Inf"], "u_id = {}".format(uID))
             return True
         else:
             return False

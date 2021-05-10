@@ -45,8 +45,9 @@ class ScreenAdmin(Screen):
                 print(card, '\n')
 
                 if(traced[inf] != None):
-                    depth += 1
-                    self.printTraced(traced[inf], maxDepth, depth, detailedID)
+                    nextDepth = depth + 1
+                    self.printTraced(
+                        traced[inf], maxDepth, nextDepth, detailedID)
 
     def adminTracedContacts(self, focus=-1):
         self._admin.contact.startTracing()
@@ -58,6 +59,7 @@ class ScreenAdmin(Screen):
         print("Primaries \n")
         for traced in tracedContacts:
             self.printTraced(traced, detailedID=focus)
+        print("\t{0:-^50}".format(" end "))
 
         print("")
         print("Options: ")
@@ -90,10 +92,12 @@ class ScreenAdmin(Screen):
 
         row = 1
         for que in pendings:
-            name = (self._admin.getCompactInfo(que["uploadedBy"]))["name"]
+            name = (self._admin.getCustSampleInfo(que["uploadedBy"]))["name"]
+
             print("\t{0:>5}  {1:<20} {2:<20}".format(
-                que["pID"], name, que["dtUploaded"]))
+                que["uploadedBy"], name, que["dtUploaded"]))
             row += 1
+
         print("\t{0:-^50}".format(" end "))
 
         print("")
@@ -110,7 +114,7 @@ class ScreenAdmin(Screen):
             if (self.isValidInt(toView, 1)):
                 toView = int(toView)
                 for que in pendings:
-                    if(que["pID"] == toView):
+                    if(que["uploadedBy"] == toView):
                         print("\t{0:>20}:   {1:<20}".format("pID", que["pID"]))
                         print("\t{0:>20}:   {1:<20}".format(
                             "Link to Proof", que["proofLink"]))
@@ -128,9 +132,11 @@ class ScreenAdmin(Screen):
                         do = input("Do: ")
 
                         if(do == "a"):
-                            self._admin.updateProofStat(que["pID"], "Approved")
+                            self._admin.updateProofStat(
+                                que["uploadedBy"], "Approved")
                         elif(do == "d"):
-                            self._admin.updateProofStat(que["pID"], "Denied")
+                            self._admin.updateProofStat(
+                                que["uploadedBy"], "Denied")
                         self.adminPendingProofs()
                         break
             else:
@@ -182,8 +188,7 @@ class ScreenAdmin(Screen):
             toGenerate = input("Enter Store ID to generate QR Code: ")
             if(self.isValidInt(toGenerate, 1)):
                 toGenerate = int(toGenerate)
-                storeInfo = self._db.query(
-                    "SELECT * FROM stores WHERE store_num = {}".format(toGenerate))
+                storeInfo = self._admin.getStoreInfo(toGenerate)
                 path = self._admin.generateQRCode(storeInfo)
                 if(path != False):
                     print("QR Code Generated and Saved in {}".format(path))

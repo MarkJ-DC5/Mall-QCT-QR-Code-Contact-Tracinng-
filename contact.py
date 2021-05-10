@@ -41,7 +41,8 @@ class Contact():
         infecteesCount = len(primaryInfectees)
 
         if(infecteesCount > 0):
-
+            if(infecteesCount == 1):
+                primaryInfectees.append(-1)
             fromUsers = (self.__db.query(
                 "SELECT u_id FROM users WHERE inf_cov = 'Primary Inf' AND dt_rem IS NULL and u_id NOT IN {}".format(tuple(primaryInfectees))))
 
@@ -55,6 +56,8 @@ class Contact():
         return primaryInfectees
 
     def uploadPrimeInfs(self):
+        if(-1 in self.__primaryInfecteds):
+            self.__primaryInfecteds.remove(-1)
         for id in self.__primaryInfecteds:
             exist = self.__db.query(
                 "SELECT COUNT(*) FROM primary_infecteds WHERE inf_id = {} AND dt_rem IS NULL".format(id))
@@ -66,7 +69,10 @@ class Contact():
     def getDTEntered(self, uID):
         dtEntered = self.__db.query(
             "SELECT dt_rec FROM customers_health_record  WHERE u_id = {}  ORDER BY dt_rec DESC LIMIT 1".format(uID))
-        return dtEntered[0]
+        if(len(dtEntered) != 0):
+            return dtEntered[0]
+        else:
+            return False
 
     def __cleanOutputList(self, srcList, refList):
         cleaned = []
@@ -77,9 +83,14 @@ class Contact():
 
         # removes already recorded ID
         if (len(cleaned) > 0):
-            for id in cleaned:
-                if (id in refList):
-                    del cleaned[cleaned.index(id)]
+            currentInd = 0
+            cleanedLen = len(cleaned)
+            while currentInd < cleanedLen:
+                if(cleaned[currentInd] in refList):
+                    del cleaned[currentInd]
+                    cleanedLen -= 1
+                else:
+                    currentInd += 1
 
         return cleaned
 
@@ -201,9 +212,10 @@ class Contact():
         byDepthTrace = {}
         for primeInf in primaryInfectees:
             dtEnt = self.getDTEntered(primeInf)
-            trace = self.singleTrace(primeInf)
-            byContactTrace.append(trace["traced"])
-            byDepthTrace[primeInf] = trace["orderedHistInf"]
+            if(dtEnt != False):
+                trace = self.singleTrace(primeInf)
+                byContactTrace.append(trace["traced"])
+                byDepthTrace[primeInf] = trace["orderedHistInf"]
 
         return {"byContactTrace": byContactTrace, "byDepthTrace": byDepthTrace}
 
@@ -212,7 +224,7 @@ class Contact():
 
 
 def resetCustHlthRec():
-    db = HighControlDB("f", fileName="dbTestCred.txt")
+    db = HighControlDB()
     db.query("DROP TABLE IF EXISTS Customers_Health_Record")
     db.query("CREATE TABLE Customers_Health_Record (\
         u_id int,\
@@ -222,7 +234,7 @@ def resetCustHlthRec():
 
 
 def fillCCustHlthRec(intances=100, people=100, stores=15, timeDif=24):
-    db = HighControlDB("f", fileName="dbTestCred.txt")
+    db = HighControlDB()
     currentDT = datetime.now().replace(microsecond=0)
     # currentTimeInc = datetime.now().replace(microsecond=0) + timedelta(hours=1)
     print("Current Time: ", currentDT)
@@ -269,11 +281,14 @@ def TestTrace():
     # timedef inversely proportional
 
     # test every possible primaryInfectedId
-    i = 1
-    while i <= 100:
-        id = i
-        ct = Contact(db)
-        traced = ct.singleTrace(id)
-        traced = traced["traced"]
-        print(traced)
-        i += 1
+    ct = Contact(db)
+    traced = ct.singleTrace(64)
+    print(traced)
+    # i = 1
+    # while i <= 100:
+    #     id = i
+    #     ct = Contact(db)
+    #     traced = ct.singleTrace(id)
+    #     traced = traced["traced"]
+    #     print(traced)
+    #     i += 1
