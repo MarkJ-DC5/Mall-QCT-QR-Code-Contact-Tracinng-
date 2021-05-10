@@ -93,11 +93,8 @@ class User:
         else:
             return False
 
-    def getExpandedInfo(self):
-        info = self._info.copy()
-        info.pop('uID', None)
-        info.pop('dtRem', None)
-        return info
+    def getInfo(self):
+        return (self._info).copy()
 
     def updateInfo(self, cols, values):
         forbidden = ("u_id", "type", "inf_cov", "dt_add", "dt_rem")

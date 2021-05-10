@@ -1,51 +1,62 @@
+from os import system
+from contact import Contact
 from datetime import date, timedelta
 from logging import exception
 from types import CoroutineType
 from typing import ItemsView
 from user import *
 import base64
+from pyzbar.pyzbar import decode
+import time
 
 
 class Customer(User):
-    def readQR(self, img):
-        '''
-            Get the sID stores in the qr code, and insert the readed sID 
-            together with the uId and dtRecorded to customers_health_record
-            Args:
-                img: path to the image
-            Returns: 
-                True - no error in reading and inserting information to the database
-                False - an error in either or both reading and insertion of infromation
-        '''
-
+    def scanQRCode(self):
         if (self._isVerified):
+            cap = cv.VideoCapture(0, cv.CAP_DSHOW)
+            cap.set(3, 640)
+            cap.set(5, 480)
+            content = None
+            scanning = True
+
             try:
-                try:
-                    val, points, straight_qrcode = cv.QRCodeDetector().detectAndDecode(cv.imread(img))
-                except:
-                    raise Exception("Error in Reading QR Code")
-                store = self._db.query(
-                    "SELECT * FROM stores WHERE s_ID IN (\"{}\")".format(val))
-                if (len(store) > 0):
-                    currentDT = datetime.now().replace(microsecond=0)
+                while scanning == True:
+                    success, frame = cap.read()
 
-                    recorded = self._db.query(
-                        "SELECT COUNT(*) FROM customers_health_record WHERE u_ID = {} AND s_ID = {} AND dt_rec BETWEEN \"{}\" AND \"{}\"".format(
-                            self._info["uID"], store[0], str(currentDT - timedelta(minutes=10)), str(currentDT)))
+                    cv.imshow("Scanning...", frame)
+                    cv.waitKey(1)
 
-                    if (recorded == 0):
-                        self._db.insert("customers_health_record",
-                                        ["u_id", "s_id", "dt_rec"], [self._info["uID"], store[0], str(currentDT)])
-                        return True
-                    else:
-                        print("Already Added")
+                    for code in decode(frame):
+                        content = code.data.decode('utf-8')
+                        scanning = False
+                        cv.destroyAllWindows()
+                        time.sleep(.1)
+
+            except KeyboardInterrupt:
+                print("Press Ctrl-C to terminate while statement")
+                pass
+
+            store = self._db.query(
+                "SELECT * FROM stores WHERE s_ID IN (\"{}\")".format(content))
+
+            if (len(store) > 0):
+                currentDT = datetime.now().replace(microsecond=0)
+
+                recorded = self._db.query(
+                    "SELECT COUNT(*) FROM customers_health_record WHERE u_ID = {} AND s_ID = {} AND dt_rec BETWEEN \"{}\" AND \"{}\"".format(
+                        self._info["uID"], store[0], str(currentDT - timedelta(minutes=10)), str(currentDT)))
+
+                if (recorded == 0):
+                    self._db.insert("customers_health_record",
+                                    ["u_id", "s_id", "dt_rec"], [self._info["uID"], store[0], str(currentDT)])
+                    print("Added to Records")
+                    system('pause')
+                    return True
                 else:
-                    print("{} s_id Not found".format(val))
-                return False
-            except Exception as e:
-                print(e)
-                return False
-        else:
+                    print("Already Added")
+            else:
+                print("{} s_id Not found".format(content))
+            system('pause')
             return False
 
     def uploadProof(self, proof):
@@ -166,6 +177,7 @@ class Admin(User):
         User.__init__(self, database)
         super().__init__(database)  # inherits all methods and properties
         self.__qrCodePath = qrCodePath
+        self.contact = Contact(self._db)
 
     def generateQRCode(self, storeInfo):
         '''
@@ -182,7 +194,7 @@ class Admin(User):
             qrName = str(storeInfo["sID"]) + "_" + \
                 str(storeInfo["sNum"]) + "_" + storeInfo["name"] + ".jpg"
             id_qrCode.save(self.__qrCodePath + qrName)
-            return True
+            return (self.__qrCodePath + qrName)
         except Exception as e:
             print(e)
             return False
@@ -312,7 +324,7 @@ class Admin(User):
         '''
         pending = []
         tempPending = self._db.query(
-            "SELECT * FROM proof_records WHERE status = 'Pending' ORDER BY dt_uploaded DESC")
+            "SELECT * FROM proof_records WHERE status = 'Pending' ORDER BY dt_uploaded DESC LIMIT {}".format(intances))
 
         if (len(tempPending) > 0):
 
@@ -358,6 +370,28 @@ class Admin(User):
         if (status == 'Approved' or status == 'Denied' or status == 'Pending'):
             self._db.update("proof_records", ["status", "stat_changed_by", "dt_stat_changed"], [
                             status, self._info["uID"], str(datetime.now().replace(microsecond=0))], "p_id = {}".format(pID))
+            self._db.update("users", ["inf_cov"], [
+                            "Primary Inf"], "u_id = {}".format(pID))
             return True
         else:
             return False
+
+    def getCustSampleInfo(self, uID):
+        temp = self._db.query(
+            "Select u_id, f_name, l_name from users where u_id = {}".format(uID))
+        info = {}
+        info["uID"] = temp[0]
+        info["name"] = temp[1] + " " + temp[2]
+        return info
+
+    def getCustInfo(self, uID):
+        temp = self._db.query(
+            "Select * from users where u_id = {}".format(uID))
+        info = {}
+        info["uID"] = temp[0]
+        info["cNum"] = temp[1]
+        info["name"] = temp[5] + " " + temp[6]
+        info["age"] = temp[7]
+        info["gender"] = temp[8]
+        info["address"] = temp[9] + ", " + temp[10] + ", " + temp[11]
+        return info

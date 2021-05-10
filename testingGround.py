@@ -111,7 +111,7 @@ def GenerateQR(storeNum):
 def ReadQR():
     cust = Customer(db)
     cust.verifyUser("09002", "passwd")
-    cust.readQR("QRcodes/4_4_Kripy Kreme.jpg")
+    cust.scanQRCode("QRcodes/4_4_Kripy Kreme.jpg")
 
 
 def userTest():

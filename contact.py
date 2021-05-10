@@ -36,7 +36,7 @@ class Contact():
     def getPrimaryInfecteds(self):
         # from the already recorded
         primaryInfectees = self.__db.query(
-            "SELECT inf_id FROM primary_infecteds WHERE dt_rem IS NULL")
+            "SELECT inf_id FROM primary_infecteds WHERE dt_rem IS NULL ORDER BY dt_rec desc")
 
         infecteesCount = len(primaryInfectees)
 
@@ -206,32 +206,6 @@ class Contact():
             byDepthTrace[primeInf] = trace["orderedHistInf"]
 
         return {"byContactTrace": byContactTrace, "byDepthTrace": byDepthTrace}
-
-    def sortByLevel(self, output=0):
-        output = {27: {1: {33: {74: None, 66: None}, 92: None, 28: {14: None, 39: None, 46: None,
-                                                                    2: None}, 16: None, 99: {70: {30: None, 60: None}}, 82: {68: None, 64: None}}}}
-        primaryInf = None
-        fContact = []
-        sContact = []
-        tContact = []
-
-        if (output != None):
-            for p in output:
-                primaryInf = p
-
-                if (output[p] != None):
-                    for f in output[p]:
-                        fContact.append(f)
-
-                        if (output[p][f] != None):
-                            for s in output[p][f]:
-                                sContact.append(s)
-
-                                if (output[p][f][s] != None):
-                                    for t in output[p][f][s]:
-                                        tContact.append(t)
-
-        return {"pInf": primaryInf, "fContact": fContact, "sContact": sContact, "tContact": tContact}
 
     def getTracedContact(self):
         return self.__Traces
