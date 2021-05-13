@@ -9,7 +9,7 @@ system('cls')
 
 
 class Database:
-    def __init__(self, loadFrom='f', host="localhost", user="root", password="root", databaseName="testdb", fileName="dbCreds.txt"):
+    def __init__(self, loadFrom='f', host="localhost", user="root", password="root", databaseName="testdb", fileName="credentials/dbCreds.txt"):
         self._isConnected = False
         self._fileName = fileName
         print("Connecting to Database...")
@@ -40,14 +40,14 @@ class Database:
             )
 
             self.dbCursor = self.db.cursor()
-            print("Connection to Database \"{}\" Established".format(
+            print("Connection to Database \"{}\" Established \n".format(
                 self.__databaseName))
             self._isConnected = True
 
         except Exception as e:
             self._isConnected = False
             print(e)
-            print("Connection to Databse Not Established")
+            print("Connection to Databse Not Established \n")
 
     def __loadCredsFromFile(self, filename):
         try:

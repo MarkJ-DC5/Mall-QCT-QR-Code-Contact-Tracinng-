@@ -1,77 +1,73 @@
+from os import system
+from contact import Contact
 from datetime import date, timedelta
 from logging import exception
 from types import CoroutineType
 from typing import ItemsView
 from user import *
 import base64
+from pyzbar.pyzbar import decode
+import time
 
 
 class Customer(User):
-    def readQR(self, img):
-        '''
-            Get the sID stores in the qr code, and insert the readed sID 
-            together with the uId and dtRecorded to customers_health_record
-            Args:
-                img: path to the image
-            Returns: 
-                True - no error in reading and inserting information to the database
-                False - an error in either or both reading and insertion of infromation
-        '''
+    def scanQRCode(self):
+        try:
+            if (self._isVerified):
+                cap = cv.VideoCapture(0, cv.CAP_DSHOW)
+                cap.set(3, 640)
+                cap.set(5, 480)
+                content = None
+                scanning = True
 
-        if (self._isVerified):
-            try:
                 try:
-                    val, points, straight_qrcode = cv.QRCodeDetector().detectAndDecode(cv.imread(img))
-                except:
-                    raise Exception("Error in Reading QR Code")
-                store = self._db.query(
-                    "SELECT * FROM stores WHERE s_ID IN (\"{}\")".format(val))
-                if (len(store) > 0):
-                    currentDT = datetime.now().replace(microsecond=0)
+                    while scanning == True:
+                        success, frame = cap.read()
 
-                    recorded = self._db.query(
-                        "SELECT COUNT(*) FROM customers_health_record WHERE u_ID = {} AND s_ID = {} AND dt_rec BETWEEN \"{}\" AND \"{}\"".format(
-                            self._info["uID"], store[0], str(currentDT - timedelta(minutes=10)), str(currentDT)))
+                        cv.imshow("Scanning...", frame)
+                        cv.waitKey(1)
 
-                    if (recorded == 0):
-                        self._db.insert("customers_health_record",
-                                        ["u_id", "s_id", "dt_rec"], [self._info["uID"], store[0], str(currentDT)])
-                        return True
+                        for code in decode(frame):
+                            content = code.data.decode('utf-8')
+                            scanning = False
+                            cv.destroyAllWindows()
+                            time.sleep(.1)
+
+                except KeyboardInterrupt:
+                    print("Press Ctrl-C to terminate while statement")
+                    pass
+
+                if(content != None):
+                    store = self._db.query(
+                        "SELECT * FROM stores WHERE s_ID IN (\"{}\")".format(content))
+
+                    if (len(store) > 0):
+                        currentDT = datetime.now().replace(microsecond=0)
+
+                        recorded = self._db.query(
+                            "SELECT COUNT(*) FROM customers_health_record WHERE u_ID = {} AND s_ID = {} AND dt_rec BETWEEN \"{}\" AND \"{}\"".format(
+                                self._info["uID"], store[0], str(currentDT - timedelta(minutes=10)), str(currentDT)))
+                        recorded = recorded[0]
+
+                        if (recorded == 0):
+                            self._db.insert("customers_health_record",
+                                            ["u_id", "s_id", "dt_rec"], [self._info["uID"], store[0], str(currentDT)])
+                            print("Added to Records")
+                            system('pause')
+                            return True
+                        else:
+                            print("Already Added")
                     else:
-                        print("Already Added")
+                        print("{} s_id Not found".format(content))
+                    system('pause')
+                    return False
                 else:
-                    print("{} s_id Not found".format(val))
+                    print("Content is Empty")
+            else:
                 return False
-            except Exception as e:
-                print(e)
-                return False
-        else:
-            return False
-
-    def getInfo(self):
-        '''
-            Get's the user info
-            Returns:
-                Dictionary containing a formatted and compact user information
-                    {'name': None, 'infCov': None,'age': None, 'gender': None, 'address': None}   
-                False - not verified or no info is loaded
-        '''
-
-        info = {'name': None, 'infCov': None,
-                'age': None, 'gender': None, 'address': None}
-
-        if (self._isVerified):
-            info['name'] = self._info['fName'] + " " + self._info['lName']
-            info['infCov'] = self._info['infCov']
-            info['age'] = self._info['age']
-            info['gender'] = self._info['gender']
-            info['address'] = self._info['street'] + ", " + \
-                self._info['barangay'] + ", " + \
-                self._info['street'] + ", " + self._info['city']
-
-            return info
-        else:
-            return False
+        except:
+            print("Error Reading QR Code (Possible Reason: Camera is Inaccessible")
+            system("pause")
 
     def uploadProof(self, proof):
         '''
@@ -86,8 +82,9 @@ class Customer(User):
 
         if (self._isVerified):
             currentDT = datetime.now().replace(microsecond=0)
-            latestEntryCount = self._db.query("SELECT COUNT(uploaded_by) FROM proof_records WHERE dt_uploaded BETWEEN \"{}\" and \"{}\"".format(
-                str(currentDT - timedelta(hours=1)), str(currentDT)))
+            latestEntryCount = self._db.query("SELECT COUNT(uploaded_by) FROM proof_records WHERE p_id = {} and dt_uploaded BETWEEN \"{}\" and \"{}\"".format(self._info["uID"],
+                                                                                                                                                              str(currentDT - timedelta(hours=1)), str(currentDT)))
+            latestEntryCount = latestEntryCount[0]
 
             if (latestEntryCount == 0):
                 self._db.insert("proof_records", ["proofLink", "uploaded_by", "dt_uploaded"], [
@@ -161,7 +158,7 @@ class Customer(User):
 
         history = []
         tempDates = self._db.query(
-            "SELECT DISTINCT DATE(dt_rec) FROM customers_health_record WHERE u_id = {} LIMIT {}".format(self._info['uID'], instances))
+            "SELECT DISTINCT DATE(dt_rec) FROM customers_health_record WHERE u_id = {} ORDER BY dt_rec DESC LIMIT {}".format(self._info['uID'], instances))
 
         if (len(tempDates) > 0):
             for d in tempDates:
@@ -172,11 +169,18 @@ class Customer(User):
                 tempStores = self._db.query(
                     "SELECT s_id, MAX(TIME(dt_rec)) FROM customers_health_record WHERE DATE(dt_rec) = '{}' AND u_id = {} GROUP BY s_id".format(d, self._info['uID']))
 
-                if (tempStores != None):
-                    for store in tempStores:
-                        storeInfo = self.getStoreInfo(store[0])
-                        storeInfo["timeEnt"] = str(store[1])
-                        log['stores'].append(storeInfo)
+                if (type(tempStores[0]) == int):
+                    storeInfo = self.getStoreInfo(tempStores[0])
+                    storeInfo["timeEnt"] = str(tempStores[1])
+                    log['stores'].append(storeInfo)
+
+                else:
+                    if (tempStores != None):
+                        for store in tempStores:
+                            storeInfo = self.getStoreInfo(store[0])
+                            storeInfo["timeEnt"] = str(store[1])
+                            log['stores'].append(storeInfo)
+
                 history.append(log)
             return history
         else:
@@ -190,6 +194,7 @@ class Admin(User):
         User.__init__(self, database)
         super().__init__(database)  # inherits all methods and properties
         self.__qrCodePath = qrCodePath
+        self.contact = Contact(self._db)
 
     def generateQRCode(self, storeInfo):
         '''
@@ -206,7 +211,7 @@ class Admin(User):
             qrName = str(storeInfo["sID"]) + "_" + \
                 str(storeInfo["sNum"]) + "_" + storeInfo["name"] + ".jpg"
             id_qrCode.save(self.__qrCodePath + qrName)
-            return True
+            return (self.__qrCodePath + qrName)
         except Exception as e:
             print(e)
             return False
@@ -228,6 +233,11 @@ class Admin(User):
 
         existingStore = self._db.query(
             "SELECT COUNT(store_num) FROM stores WHERE store_num = {} AND dt_rem IS NULL".format(p_storeNum))
+
+        if(len(existingStore) > 0):
+            existingStore = existingStore[0]
+        else:
+            return False
 
         if (existingStore == 0):
             self._db.insert("stores", ["store_num", "floor", "wing", "name", "c_num", "email", "dt_add"], [
@@ -318,6 +328,11 @@ class Admin(User):
         currentDTRem = self._db.query(
             "SELECT dt_rem FROM stores WHERE s_id = {}".format(sID))
 
+        if(len(currentDTRem) > 0):
+            currentDTRem = currentDTRem[0]
+        else:
+            return False
+
         if (currentDTRem == None):
             self._db.update('stores', ["dt_rem"], [
                 str(datetime.now().date())], "s_id = {}".format(sID))
@@ -336,7 +351,7 @@ class Admin(User):
         '''
         pending = []
         tempPending = self._db.query(
-            "SELECT * FROM proof_records WHERE status = 'Pending' ORDER BY dt_uploaded DESC")
+            "SELECT * FROM proof_records WHERE status = 'Pending' ORDER BY dt_uploaded DESC LIMIT {}".format(intances))
 
         if (len(tempPending) > 0):
 
@@ -368,7 +383,7 @@ class Admin(User):
         # [{},{},{}]
         return pending
 
-    def updateProofStat(self, pID, status):
+    def updateProofStat(self, uID, status):
         '''
             Change the status of proof of request
             Args:
@@ -381,7 +396,29 @@ class Admin(User):
 
         if (status == 'Approved' or status == 'Denied' or status == 'Pending'):
             self._db.update("proof_records", ["status", "stat_changed_by", "dt_stat_changed"], [
-                            status, self._info["uID"], str(datetime.now().replace(microsecond=0))], "p_id = {}".format(pID))
+                            status, self._info["uID"], str(datetime.now().replace(microsecond=0))], "uploaded_by = {}".format(uID))
+            self._db.update("users", ["inf_cov"], [
+                            "Primary Inf"], "u_id = {}".format(uID))
             return True
         else:
             return False
+
+    def getCustSampleInfo(self, uID):
+        temp = self._db.query(
+            "Select u_id, f_name, l_name from users where u_id = {}".format(uID))
+        info = {}
+        info["uID"] = temp[0]
+        info["name"] = temp[1] + " " + temp[2]
+        return info
+
+    def getCustInfo(self, uID):
+        temp = self._db.query(
+            "Select * from users where u_id = {}".format(uID))
+        info = {}
+        info["uID"] = temp[0]
+        info["cNum"] = temp[1]
+        info["name"] = temp[5] + " " + temp[6]
+        info["age"] = temp[7]
+        info["gender"] = temp[8]
+        info["address"] = temp[9] + ", " + temp[10] + ", " + temp[11]
+        return info
