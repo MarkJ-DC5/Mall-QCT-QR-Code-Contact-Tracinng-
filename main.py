@@ -16,7 +16,6 @@ def main():
     screen = Screen(database=db)
     screen.setUser(tempUser)
     userType = screen.logIn()
-
     if userType == 'C':
         customer = Customer(db)
         tempUser.transferInfoTo(customer)
