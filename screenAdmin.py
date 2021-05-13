@@ -209,7 +209,12 @@ class ScreenAdmin(Screen):
             if(self.isValidInt(storeNum, 1) and self.isValidInt(floor, 1) and
                 self.isValidString(wing) and wing in ["North", "South", "East", "West"] and
                     self.isValidString(name) and self.isValidCnum(cNum) and len(email) > 5):
-                self._admin.newStore(storeNum, floor, wing, name, cNum, email)
+                if(self._admin.newStore(storeNum, floor, wing, name, cNum, email)):
+                    print("Store is Added...")
+                else:
+                    print("Deleted...")
+                system('pause')
+                self.adminStores(rows)
             else:
                 print("One or More Inputs Invalid")
                 system('pause')
@@ -219,7 +224,10 @@ class ScreenAdmin(Screen):
             toDelete = input("Enter Store ID to Delete: ")
             if(self.isValidInt(toDelete, 1)):
                 toDelete = int(toDelete)
-                self._admin.deleteStore(toDelete)
+                if(not self._admin.deleteStore(toDelete)):
+                    system('pause')
+                    self.adminStores(rows)
+
             else:
                 self.adminStores(rows)
         elif(optToShow == "m"):

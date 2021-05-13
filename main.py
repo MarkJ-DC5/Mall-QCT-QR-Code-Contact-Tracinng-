@@ -13,7 +13,7 @@ def main():
 
     db = Database()
     tempUser = User(db)
-    screen = Screen()
+    screen = Screen(database=db)
     screen.setUser(tempUser)
     userType = screen.logIn()
 

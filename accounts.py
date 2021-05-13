@@ -12,53 +12,62 @@ import time
 
 class Customer(User):
     def scanQRCode(self):
-        if (self._isVerified):
-            cap = cv.VideoCapture(0, cv.CAP_DSHOW)
-            cap.set(3, 640)
-            cap.set(5, 480)
-            content = None
-            scanning = True
+        try:
+            if (self._isVerified):
+                cap = cv.VideoCapture(0, cv.CAP_DSHOW)
+                cap.set(3, 640)
+                cap.set(5, 480)
+                content = None
+                scanning = True
 
-            try:
-                while scanning == True:
-                    success, frame = cap.read()
+                try:
+                    while scanning == True:
+                        success, frame = cap.read()
 
-                    cv.imshow("Scanning...", frame)
-                    cv.waitKey(1)
+                        cv.imshow("Scanning...", frame)
+                        cv.waitKey(1)
 
-                    for code in decode(frame):
-                        content = code.data.decode('utf-8')
-                        scanning = False
-                        cv.destroyAllWindows()
-                        time.sleep(.1)
+                        for code in decode(frame):
+                            content = code.data.decode('utf-8')
+                            scanning = False
+                            cv.destroyAllWindows()
+                            time.sleep(.1)
 
-            except KeyboardInterrupt:
-                print("Press Ctrl-C to terminate while statement")
-                pass
+                except KeyboardInterrupt:
+                    print("Press Ctrl-C to terminate while statement")
+                    pass
 
-            store = self._db.query(
-                "SELECT * FROM stores WHERE s_ID IN (\"{}\")".format(content))
+                if(content != None):
+                    store = self._db.query(
+                        "SELECT * FROM stores WHERE s_ID IN (\"{}\")".format(content))
 
-            if (len(store) > 0):
-                currentDT = datetime.now().replace(microsecond=0)
+                    if (len(store) > 0):
+                        currentDT = datetime.now().replace(microsecond=0)
 
-                recorded = self._db.query(
-                    "SELECT COUNT(*) FROM customers_health_record WHERE u_ID = {} AND s_ID = {} AND dt_rec BETWEEN \"{}\" AND \"{}\"".format(
-                        self._info["uID"], store[0], str(currentDT - timedelta(minutes=10)), str(currentDT)))
-                recorded = recorded[0]
+                        recorded = self._db.query(
+                            "SELECT COUNT(*) FROM customers_health_record WHERE u_ID = {} AND s_ID = {} AND dt_rec BETWEEN \"{}\" AND \"{}\"".format(
+                                self._info["uID"], store[0], str(currentDT - timedelta(minutes=10)), str(currentDT)))
+                        recorded = recorded[0]
 
-                if (recorded == 0):
-                    self._db.insert("customers_health_record",
-                                    ["u_id", "s_id", "dt_rec"], [self._info["uID"], store[0], str(currentDT)])
-                    print("Added to Records")
+                        if (recorded == 0):
+                            self._db.insert("customers_health_record",
+                                            ["u_id", "s_id", "dt_rec"], [self._info["uID"], store[0], str(currentDT)])
+                            print("Added to Records")
+                            system('pause')
+                            return True
+                        else:
+                            print("Already Added")
+                    else:
+                        print("{} s_id Not found".format(content))
                     system('pause')
-                    return True
+                    return False
                 else:
-                    print("Already Added")
+                    print("Content is Empty")
             else:
-                print("{} s_id Not found".format(content))
-            system('pause')
-            return False
+                return False
+        except:
+            print("Error Reading QR Code (Possible Reason: Camera is Inaccessible")
+            system("pause")
 
     def uploadProof(self, proof):
         '''
@@ -225,6 +234,11 @@ class Admin(User):
         existingStore = self._db.query(
             "SELECT COUNT(store_num) FROM stores WHERE store_num = {} AND dt_rem IS NULL".format(p_storeNum))
 
+        if(len(existingStore) > 0):
+            existingStore = existingStore[0]
+        else:
+            return False
+
         if (existingStore == 0):
             self._db.insert("stores", ["store_num", "floor", "wing", "name", "c_num", "email", "dt_add"], [
                             p_storeNum, p_floor, p_wing, p_name, p_cNum, p_email, str(datetime.now().date())])
@@ -313,6 +327,11 @@ class Admin(User):
         '''
         currentDTRem = self._db.query(
             "SELECT dt_rem FROM stores WHERE s_id = {}".format(sID))
+
+        if(len(currentDTRem) > 0):
+            currentDTRem = currentDTRem[0]
+        else:
+            return False
 
         if (currentDTRem == None):
             self._db.update('stores', ["dt_rem"], [

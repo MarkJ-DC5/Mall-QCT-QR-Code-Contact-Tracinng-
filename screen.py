@@ -2,8 +2,9 @@ from os import O_APPEND, stat_result, system
 
 
 class Screen():
-    def __init__(self, user=None) -> None:
+    def __init__(self, user=None, database=None) -> None:
         self.__user = user
+        self.__database = database
 
     def setUser(self, user):
         self.__user = user
@@ -308,17 +309,29 @@ class Screen():
                     return self.__user.getUserType()
                 else:
                     attempts -= 1
-                    print("No Credential Matched: {} attemps left".format(
-                        attempts))
-                    print("r: Retry")
-                    print("c: Create New Account")
-                    print("e: Exit")
+                    existingUser = self.__database.query(
+                        "SELECT COUNT(u_id) FROM users WHERE c_num = '{}'".format(cNum))
+                    existingUser = existingUser[0]
+
+                    if(existingUser == 1):
+                        print(
+                            "No Credential Matched: {} attemps left".format(attempts))
+                        print("r: Retry")
+                        print("e: Exit")
+
+                    elif (existingUser == 0):
+                        print(
+                            "No Credential Matched: {} attemps left".format(attempts))
+                        print("r: Retry")
+                        print("c: Create New User")
+                        print("e: Exit")
+
                     choosenOpt = input("Do: ")
 
                     if(choosenOpt == "r"):
                         print('\n')
                         continue
-                    elif(choosenOpt == "c"):
+                    elif(choosenOpt == "c" and existingUser == 0):
                         self.signUp(cNum, passwd)
                         self.__user.verifyUser(cNum, passwd)
                         return self.__user.getUserType()
